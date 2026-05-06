@@ -1,73 +1,250 @@
-# Welcome to your Lovable project
+# TrustGuard AI - Third-Party Risk Management Platform
 
-## Project info
+A comprehensive TPRM platform for managing vendor security assessments with AI-powered risk analysis.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## 🚀 Features
 
-## How can I edit this code?
+- **Vendor Management**: Create, track, and manage vendor relationships
+- **Security Assessments**: Data-driven questionnaires for security evaluation
+- **AI-Powered Analysis**: Automated risk scoring and recommendations
+- **Role-Based Access Control**: Admin, TPRM Analyst, and Vendor roles
+- **Dashboard & Reporting**: Real-time risk metrics and visualizations
+- **Multi-Tenant Support**: Isolated data per organization
 
-There are several ways of editing your application.
+## 🏗️ Architecture
 
-**Use Lovable**
+### Frontend
+- React 18 + TypeScript
+- Vite for build tooling
+- Tailwind CSS + shadcn/ui for styling
+- React Query for data fetching
+- React Router for navigation
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+### Backend
+- Node.js + Express
+- PostgreSQL database
+- JWT authentication
+- RESTful API
 
-Changes made via Lovable will be committed automatically to this repo.
+### Infrastructure
+- Docker & Docker Compose
+- Nginx for production serving
+- Health checks and monitoring ready
 
-**Use your preferred IDE**
+## 📋 Prerequisites
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+- Node.js 20+ 
+- Docker & Docker Compose (for containerized deployment)
+- PostgreSQL 15+ (for local development without Docker)
+- npm or bun package manager
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## 🛠️ Local Development Setup
 
-Follow these steps:
+### Option 1: Using Docker Compose (Recommended)
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+1. **Clone the repository**
+```bash
+git clone <repository-url>
+cd trustguard-ai
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+2. **Configure environment variables**
+```bash
+cp .env.example .env
+# Edit .env with your production values
+```
 
-# Step 3: Install the necessary dependencies.
-npm i
+3. **Start all services**
+```bash
+docker-compose up -d
+```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+This will start:
+- PostgreSQL database on port 5432
+- Backend API on port 3000
+- Frontend web app on port 80
+
+4. **Access the application**
+- Frontend: http://localhost
+- API: http://localhost:3000
+- API Health: http://localhost:3000/health
+
+Default admin credentials:
+- Email: admin@trustguard.ai
+- Password: admin123 (**Change immediately!**)
+
+### Option 2: Local Development
+
+1. **Install dependencies**
+```bash
+# Frontend
+npm install
+
+# Backend
+cd server
+npm install
+```
+
+2. **Setup database**
+```bash
+# Create database
+createdb trustguard
+
+# Run initialization script
+psql -d trustguard -f init.sql
+```
+
+3. **Configure environment**
+```bash
+cp .env.example .env
+# Update DB_HOST=localhost in .env
+```
+
+4. **Start backend**
+```bash
+cd server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+5. **Start frontend** (in another terminal)
+```bash
+npm run dev
+```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 🐳 Docker Commands
 
-**Use GitHub Codespaces**
+```bash
+# Build all images
+docker-compose build
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+# Start services
+docker-compose up -d
 
-## What technologies are used for this project?
+# Stop services
+docker-compose down
 
-This project is built with:
+# View logs
+docker-compose logs -f
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+# Restart a service
+docker-compose restart api
 
-## How can I deploy this project?
+# Rebuild and restart
+docker-compose up -d --build
+```
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+## 📁 Project Structure
 
-## Can I connect a custom domain to my Lovable project?
+```
+trustguard-ai/
+├── src/                    # Frontend React code
+│   ├── components/        # UI components
+│   ├── contexts/          # React contexts
+│   ├── hooks/             # Custom hooks
+│   ├── pages/             # Page components
+│   ├── lib/               # Utilities
+│   └── types/             # TypeScript types
+├── server/                 # Backend API
+│   ├── routes/            # API route handlers
+│   ├── middleware/        # Express middleware
+│   └── index.js           # API entry point
+├── supabase/              # Legacy Supabase migrations (reference)
+├── docker-compose.yml     # Docker orchestration
+├── Dockerfile             # Frontend Docker image
+├── Dockerfile.api         # Backend Docker image
+├── init.sql               # Database schema
+└── nginx.conf             # Nginx configuration
+```
 
-Yes, you can!
+## 🔐 Security Considerations
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+1. **Change default credentials** immediately after deployment
+2. **Use strong JWT_SECRET** in production (generate with `openssl rand -hex 32`)
+3. **Enable HTTPS** in production
+4. **Regular security updates** for dependencies
+5. **Database backups** should be configured
+6. **Environment variables** should never be committed
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## 📊 API Endpoints
+
+### Authentication
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - Login
+- `GET /api/auth/me` - Get current user
+- `POST /api/auth/logout` - Logout
+
+### Users (Admin only)
+- `GET /api/users` - List all users
+- `GET /api/users/:id` - Get user by ID
+- `PATCH /api/users/:id/role` - Update user role
+- `PATCH /api/users/:id/status` - Activate/deactivate user
+
+### Vendors
+- `GET /api/vendors` - List vendors (TPRM)
+- `GET /api/vendors/my-vendors` - List my vendors
+- `GET /api/vendors/:id` - Get vendor details
+- `POST /api/vendors` - Create vendor (TPRM)
+- `PATCH /api/vendors/:id` - Update vendor
+- `DELETE /api/vendors/:id` - Delete vendor (TPRM)
+
+### Assessments
+- `GET /api/assessments` - List assessments (TPRM)
+- `GET /api/assessments/my-assessments` - List my assessments
+- `GET /api/assessments/:id/details` - Get assessment with responses
+- `POST /api/assessments` - Create assessment (TPRM)
+- `POST /api/assessments/:id/responses` - Submit response
+- `POST /api/assessments/:id/submit` - Submit for review
+- `POST /api/assessments/:id/review` - Review assessment (TPRM)
+
+## 🧪 Testing
+
+```bash
+# Frontend tests
+npm run test
+
+# Backend manual testing
+curl http://localhost:3000/health
+```
+
+## 🔄 Migration from Supabase
+
+This project has been migrated from Supabase to a self-hosted PostgreSQL setup. Key changes:
+
+1. **Authentication**: Moved from Supabase Auth to JWT-based auth
+2. **Database**: Schema adapted from Supabase migrations to standalone PostgreSQL
+3. **API**: New Express backend replaces direct Supabase client calls
+4. **Frontend**: Updated to use REST API instead of Supabase client
+
+## 📝 Environment Variables
+
+See `.env.example` for all available options:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| DB_USER | Database username | trustguard |
+| DB_PASSWORD | Database password | changeme_in_production |
+| DB_NAME | Database name | trustguard |
+| DB_PORT | Database port | 5432 |
+| JWT_SECRET | JWT signing secret | change_this_in_production |
+| API_PORT | API server port | 3000 |
+| WEB_PORT | Web server port | 80 |
+
+## 🚨 Production Deployment
+
+1. **Update .env** with secure values
+2. **Build images**: `docker-compose build`
+3. **Deploy** to your cloud provider
+4. **Configure SSL/TLS** termination
+5. **Set up monitoring** and alerts
+6. **Configure backups** for PostgreSQL volume
+
+## 📄 License
+
+MIT
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
