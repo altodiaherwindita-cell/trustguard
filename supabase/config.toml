@@ -1,0 +1,7 @@
+project_id = "izryzyiqyttvdetavkeo"
+
+[functions.submit-assessment]
+verify_jwt = true
+
+[functions.accept-invitation]
+verify_jwt = false
