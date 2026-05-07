@@ -1,14 +1,20 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { Session, User } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import { authApi } from '@/lib/api';
 
 type Role = 'admin' | 'tprm_analyst' | 'vendor';
 
-interface AuthCtx {
-  session: Session | null;
-  user: User | null;
+interface User {
+  id: string;
+  email: string;
+  fullName?: string;
+  company?: string;
   roles: Role[];
+}
+
+interface AuthCtx {
+  user: User | null;
   loading: boolean;
+  error: string | null;
   isTPRM: boolean;
   isAdmin: boolean;
   isVendor: boolean;
@@ -18,46 +24,76 @@ interface AuthCtx {
 const AuthContext = createContext<AuthCtx | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [roles, setRoles] = useState<Role[]>([]);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s);
-      if (s?.user) {
-        setTimeout(() => loadRoles(s.user.id), 0);
-      } else {
-        setRoles([]);
+    let mounted = true;
+
+    const initializeAuth = async () => {
+      try {
+        // Check if we have a stored token
+        const token = authApi.getToken();
+        
+        if (!token) {
+          setLoading(false);
+          return;
+        }
+
+        // Get current user from API
+        const result = await authApi.getCurrentUser();
+        
+        if (!mounted) return;
+
+        if (result.error) {
+          console.error('Auth error:', result.error);
+          authApi.clearStorage();
+          setLoading(false);
+          return;
+        }
+
+        const apiUser = result.data?.user;
+        if (apiUser) {
+          setUser({
+            id: apiUser.id,
+            email: apiUser.email,
+            fullName: apiUser.fullName,
+            company: apiUser.company,
+            roles: apiUser.roles as Role[],
+          });
+        }
+        setLoading(false);
+      } catch (err) {
+        console.error('Auth initialization error:', err);
+        authApi.clearStorage();
+        if (mounted) {
+          setError(err instanceof Error ? err.message : 'Unknown error');
+          setLoading(false);
+        }
       }
-    });
+    };
 
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s);
-      if (s?.user) loadRoles(s.user.id).finally(() => setLoading(false));
-      else setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    initializeAuth();
   }, []);
 
-  const loadRoles = async (userId: string) => {
-    const { data } = await supabase.from('user_roles').select('role').eq('user_id', userId);
-    setRoles((data ?? []).map((r: any) => r.role as Role));
-  };
-
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await authApi.logout();
+    } catch (err) {
+      console.error('Sign out error:', err);
+    } finally {
+      setUser(null);
+    }
   };
 
   const value: AuthCtx = {
-    session,
-    user: session?.user ?? null,
-    roles,
+    user,
     loading,
-    isAdmin: roles.includes('admin'),
-    isTPRM: roles.includes('admin') || roles.includes('tprm_analyst'),
-    isVendor: roles.includes('vendor'),
+    error,
+    isAdmin: user?.roles.includes('admin') ?? false,
+    isTPRM: user?.roles.includes('admin') ?? false || user?.roles.includes('tprm_analyst') ?? false,
+    isVendor: user?.roles.includes('vendor') ?? false,
     signOut,
   };
 

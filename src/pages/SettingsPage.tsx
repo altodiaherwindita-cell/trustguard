@@ -1,27 +1,22 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { usersApi, UserProfile } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Users, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-type Member = { id: string; email: string; full_name: string | null; role: string };
-
 export function SettingsPage() {
   const { isAdmin, user } = useAuth();
-  const [members, setMembers] = useState<Member[]>([]);
+  const [members, setMembers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!isAdmin) { setLoading(false); return; }
     (async () => {
-      const { data: profiles } = await supabase.from('profiles').select('id, email, full_name');
-      const { data: roles } = await supabase.from('user_roles').select('user_id, role');
-      const roleMap = new Map<string, string>();
-      for (const r of roles || []) roleMap.set(r.user_id, r.role);
-      setMembers((profiles || []).map(p => ({ ...p, role: roleMap.get(p.id) || 'vendor' })));
+      const result = await usersApi.getAll();
+      setMembers(result.data || []);
       setLoading(false);
     })();
   }, [isAdmin]);
@@ -30,11 +25,9 @@ export function SettingsPage() {
     if (userId === user?.id && newRole !== 'admin') {
       return toast.error("You cannot remove your own admin role");
     }
-    const { error: delErr } = await supabase.from('user_roles').delete().eq('user_id', userId);
-    if (delErr) return toast.error(delErr.message);
-    const { error: insErr } = await supabase.from('user_roles').insert({ user_id: userId, role: newRole as any });
-    if (insErr) return toast.error(insErr.message);
-    setMembers(prev => prev.map(m => m.id === userId ? { ...m, role: newRole } : m));
+    const result = await usersApi.updateRole(userId, newRole);
+    if (result.error) return toast.error(result.error);
+    setMembers(prev => prev.map(m => m.id === userId ? { ...m, roles: [newRole] } : m));
     toast.success('Role updated');
   };
 
