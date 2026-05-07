@@ -14,16 +14,23 @@ const PORT = process.env.PORT || 3000;
 
 // Database connection pool with retry logic
 let dbReady = false;
-export const pool = new Pool({
-  user: process.env.DB_USER || 'trustguard',
-  host: process.env.DB_HOST || 'localhost',
-  database: process.env.DB_NAME || 'trustguard',
-  password: process.env.DB_PASSWORD || 'changeme_in_production',
-  port: parseInt(process.env.DB_PORT || '5432'),
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
-});
+
+// Support both DATABASE_URL and individual connection parameters
+const connectionString = process.env.DATABASE_URL;
+export const pool = new Pool(
+  connectionString
+    ? { connectionString }
+    : {
+        user: process.env.DB_USER || 'trustguard',
+        host: process.env.DB_HOST || 'db',
+        database: process.env.DB_NAME || 'trustguard',
+        password: process.env.DB_PASSWORD || 'changeme_in_production',
+        port: parseInt(process.env.DB_PORT || '5432'),
+        max: 20,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 5000,
+      }
+);
 
 // Test database connection with retry
 async function connectWithRetry(maxRetries = 5, delayMs = 2000) {

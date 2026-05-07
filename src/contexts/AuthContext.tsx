@@ -92,7 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading,
     error,
     isAdmin: user?.roles.includes('admin') ?? false,
-    isTPRM: user?.roles.includes('admin') ?? false || user?.roles.includes('tprm_analyst') ?? false,
+    isTPRM: (user?.roles.includes('admin') ?? false) || (user?.roles.includes('tprm_analyst') ?? false),
     isVendor: user?.roles.includes('vendor') ?? false,
     signOut,
   };
