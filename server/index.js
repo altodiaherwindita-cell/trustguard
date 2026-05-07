@@ -12,7 +12,8 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Database connection pool
+// Database connection pool with retry logic
+let dbReady = false;
 export const pool = new Pool({
   user: process.env.DB_USER || 'trustguard',
   host: process.env.DB_HOST || 'localhost',
@@ -21,40 +22,59 @@ export const pool = new Pool({
   port: parseInt(process.env.DB_PORT || '5432'),
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  connectionTimeoutMillis: 5000,
 });
 
-// Test database connection
-pool.connect((err, client, release) => {
-  if (err) {
-    console.error('Database connection error:', err.stack);
-  } else {
-    console.log('Connected to PostgreSQL database');
-    release();
+// Test database connection with retry
+async function connectWithRetry(maxRetries = 5, delayMs = 2000) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const client = await pool.connect();
+      console.log('Connected to PostgreSQL database');
+      client.release();
+      dbReady = true;
+      return true;
+    } catch (err) {
+      console.error(`Database connection attempt ${i + 1} failed:`, err.message);
+      if (i < maxRetries - 1) {
+        console.log(`Retrying in ${delayMs / 1000} seconds...`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
   }
-});
+  console.error('Failed to connect to database after all retries. Running in limited mode.');
+  dbReady = false;
+  return false;
+}
+
+connectWithRetry();
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Health check endpoint
+// Health check endpoint with API info
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
+  res.status(200).json({ 
+    status: dbReady ? 'healthy' : 'degraded',
+    database: dbReady ? 'connected' : 'disconnected',
+    timestamp: new Date().toISOString() 
+  });
 });
 
-// API Routes
+// API Routes - always register them, they'll handle DB errors internally
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/vendors', vendorRoutes);
 app.use('/api/assessments', assessmentRoutes);
 
-// Root endpoint
+// Root endpoint with API info
 app.get('/', (req, res) => {
   res.json({ 
     name: 'TrustGuard AI API', 
     version: '1.0.0',
+    database: dbReady ? 'connected' : 'disconnected',
     endpoints: [
       '/health',
       '/api/auth',

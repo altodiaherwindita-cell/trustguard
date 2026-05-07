@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { authApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import { Shield, Loader2 } from 'lucide-react';
 
 export default function AuthPage() {
-  const { session } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const redirect = params.get('redirect') || '/';
@@ -21,31 +21,24 @@ export default function AuthPage() {
   const [fullName, setFullName] = useState('');
 
   useEffect(() => {
-    if (session) navigate(redirect, { replace: true });
-  }, [session, navigate, redirect]);
+    if (user) navigate(redirect, { replace: true });
+  }, [user, navigate, redirect]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const result = await authApi.login({ email, password });
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (result.error) return toast.error(result.error);
     toast.success('Welcome back');
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}${redirect}`,
-        data: { full_name: fullName },
-      },
-    });
+    const result = await authApi.register({ email, password, fullName });
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (result.error) return toast.error(result.error);
     toast.success('Account created — you can sign in now');
   };
 

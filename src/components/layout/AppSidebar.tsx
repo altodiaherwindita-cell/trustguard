@@ -12,7 +12,12 @@ export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, isTPRM, isAdmin, signOut } = useAuth();
+  const { user, isTPRM, isAdmin, signOut, loading } = useAuth();
+  
+  // Don't render sidebar while auth is loading to prevent blank page
+  if (loading) {
+    return null;
+  }
 
   const navigation = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard, show: true },

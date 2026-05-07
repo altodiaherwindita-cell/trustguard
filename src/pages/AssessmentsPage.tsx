@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { assessmentsApi, Assessment } from '@/lib/api';
 import { RiskBadge } from '@/components/ui/RiskBadge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   ClipboardList, Calendar, Bot, ArrowRight, Clock, CheckCircle2, AlertCircle, FileText, Loader2,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const statusConfig: Record<string, any> = {
   'not-started': { label: 'Not Started', icon: Clock, className: 'bg-muted text-muted-foreground' },
@@ -18,20 +19,25 @@ const statusConfig: Record<string, any> = {
 };
 
 export function AssessmentsPage() {
-  const [assessments, setAssessments] = useState<any[]>([]);
+  const [assessments, setAssessments] = useState<(Assessment & { vendors?: { name: string }; risk_score?: number; risk_level?: string; ai_summary?: string })[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from('assessments').select('*, vendors(name)').order('created_at', { ascending: false });
-      setAssessments(data || []);
+      const result = await assessmentsApi.getAll();
+      setAssessments(result.data || []);
       setLoading(false);
     })();
   }, []);
 
   const markReviewed = async (id: string) => {
-    await supabase.from('assessments').update({ status: 'reviewed', reviewed_at: new Date().toISOString() }).eq('id', id);
+    const result = await assessmentsApi.update(id, { status: 'reviewed' });
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
     setAssessments(prev => prev.map(a => a.id === id ? { ...a, status: 'reviewed' } : a));
+    toast.success('Assessment marked as reviewed');
   };
 
   return (

@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
 
 export function RequireAuth({ children, role }: { children: ReactNode; role?: 'tprm' | 'admin' }) {
-  const { session, loading, isTPRM, isAdmin } = useAuth();
+  const { user, loading, isTPRM, isAdmin } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -15,7 +15,7 @@ export function RequireAuth({ children, role }: { children: ReactNode; role?: 't
     );
   }
 
-  if (!session) {
+  if (!user) {
     return <Navigate to={`/auth?redirect=${encodeURIComponent(location.pathname)}`} replace />;
   }
 

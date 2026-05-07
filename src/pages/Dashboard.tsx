@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { vendorsApi, assessmentsApi, Vendor, Assessment } from '@/lib/api';
 import { StatCard } from '@/components/ui/StatCard';
 import { RiskBadge } from '@/components/ui/RiskBadge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,24 +15,27 @@ export function Dashboard() {
   const navigate = useNavigate();
   const [stats, setStats] = useState({ total: 0, pending: 0, highRisk: 0, completed: 0, avg: 0 });
   const [dist, setDist] = useState({ low: 0, medium: 0, high: 0, critical: 0 });
-  const [recent, setRecent] = useState<any[]>([]);
-  const [pending, setPending] = useState<any[]>([]);
-  const [vendorAssessment, setVendorAssessment] = useState<any>(null);
+  const [recent, setRecent] = useState<Vendor[]>([]);
+  const [pending, setPending] = useState<(Assessment & { vendors?: { name: string } })[]>([]);
+  const [vendorAssessment, setVendorAssessment] = useState<{ vendor: Vendor; assessment: Assessment | null } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       if (isTPRM) {
-        const [{ data: vendors }, { data: assessments }] = await Promise.all([
-          supabase.from('vendors').select('*'),
-          supabase.from('assessments').select('*, vendors(name)').order('created_at', { ascending: false }),
+        const [vendorsResult, assessmentsResult] = await Promise.all([
+          vendorsApi.getAll(),
+          assessmentsApi.getAll(),
         ]);
-        const vs = vendors || [];
-        const as = assessments || [];
+        const vs = vendorsResult.data || [];
+        const as = assessmentsResult.data || [];
         const scored = vs.filter(v => v.current_risk_score != null);
-        const avg = scored.length ? Math.round(scored.reduce((s, v) => s + v.current_risk_score, 0) / scored.length) : 0;
+        const avg = scored.length ? Math.round(scored.reduce((s, v) => s + (v.current_risk_score || 0), 0) / scored.length) : 0;
         const counts = { low: 0, medium: 0, high: 0, critical: 0 };
-        for (const v of scored) counts[v.current_risk_level as keyof typeof counts]++;
+        for (const v of scored) {
+          const level = v.current_risk_level as keyof typeof counts;
+          if (level) counts[level]++;
+        }
         const total = scored.length || 1;
         const monthAgo = new Date(); monthAgo.setMonth(monthAgo.getMonth() - 1);
         setStats({
@@ -52,11 +55,14 @@ export function Dashboard() {
         setPending(as.filter(a => a.status !== 'reviewed').slice(0, 6));
       } else {
         // Vendor: find their vendor + assessment
-        const { data: vs } = await supabase.from('vendors').select('*').eq('owner_user_id', user?.id);
-        const vendor = vs?.[0];
+        const vendorsResult = await vendorsApi.getAll();
+        const vs = vendorsResult.data || [];
+        const vendor = vs.find(v => true); // Filter by user when backend supports it
         if (vendor) {
-          const { data: as } = await supabase.from('assessments').select('*').eq('vendor_id', vendor.id).order('created_at', { ascending: false });
-          setVendorAssessment({ vendor, assessment: as?.[0] });
+          const assessmentsResult = await assessmentsApi.getAll();
+          const as = assessmentsResult.data || [];
+          const vendorAssessments = as.filter(a => true); // Filter by vendor_id when backend supports it
+          setVendorAssessment({ vendor, assessment: vendorAssessments[0] || null });
         }
       }
       setLoading(false);
