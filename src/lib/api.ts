@@ -20,13 +20,6 @@ interface LoginRequest {
   password: string;
 }
 
-interface RegisterRequest {
-  email: string;
-  password: string;
-  fullName?: string;
-  company?: string;
-}
-
 interface AuthResponse {
   user: User;
   token: string;
@@ -72,26 +65,12 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify(credentials),
     });
-    
-    if (result.data?.token) {
-      localStorage.setItem('auth_token', result.data.token);
-      localStorage.setItem('auth_user', JSON.stringify(result.data.user));
-    }
-    
-    return result;
-  },
 
-  async register(userData: RegisterRequest): Promise<ApiResponse<AuthResponse>> {
-    const result = await request<AuthResponse>('/api/auth/register', {
-      method: 'POST',
-      body: JSON.stringify(userData),
-    });
-    
     if (result.data?.token) {
       localStorage.setItem('auth_token', result.data.token);
       localStorage.setItem('auth_user', JSON.stringify(result.data.user));
     }
-    
+
     return result;
   },
 
