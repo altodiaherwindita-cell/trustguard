@@ -16,9 +16,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Set environment variables for build time (if needed)
-ENV VITE_SUPABASE_URL=""
-ENV VITE_SUPABASE_PUBLISHABLE_KEY=""
+# Accept build-time environment variables
+ARG VITE_API_URL
+ENV VITE_API_URL=${VITE_API_URL}
 
 # Build the application
 RUN npm run build
@@ -41,15 +41,3 @@ EXPOSE 80
 
 # Start nginx
 CMD ["nginx", "-g", "daemon off;"]
-
-# Development image (optional)
-FROM base AS development
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-
-ENV VITE_SUPABASE_URL=""
-ENV VITE_SUPABASE_PUBLISHABLE_KEY=""
-
-EXPOSE 8080
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

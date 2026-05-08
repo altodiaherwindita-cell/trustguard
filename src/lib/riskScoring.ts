@@ -20,7 +20,7 @@ const RISK_IMPACT_MULTIPLIERS: Record<string, number> = {
 // Scoring rules for different answer types
 interface ScoringRule {
   type: 'boolean' | 'single-choice' | 'multiple-choice';
-  getScore: (answer: any, options?: string[]) => number;
+  getScore: (answer: string | string[] | boolean | undefined, options?: string[]) => number;
 }
 
 const scoringRules: Record<string, ScoringRule> = {

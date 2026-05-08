@@ -1,11 +1,13 @@
 ```
 # Dependencies
 node_modules/
+server/node_modules/
 
 # Build artifacts
 dist/
 build/
 target/
+server/dist/
 
 # Logs and temp files
 *.log
@@ -15,6 +17,7 @@ target/
 .env
 .env.local
 .env.*
+!.env.example
 
 # Editors
 .vscode/

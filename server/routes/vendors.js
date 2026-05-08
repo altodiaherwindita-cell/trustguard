@@ -71,13 +71,13 @@ router.get('/:id', authenticateToken, async (req, res) => {
 // Create vendor (TPRM only)
 router.post('/', authenticateToken, requireRole('admin', 'tprm_analyst'), async (req, res) => {
   try {
-    const { name, category, industry, contactEmail, status, ownerUserId } = req.body;
+    const { name, category, industry, contact_email, contactEmail, status, ownerUserId, owner_user_id } = req.body;
 
     const result = await pool.query(
       `INSERT INTO vendors (name, category, industry, contact_email, status, owner_user_id, created_by)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [name, category || 'General', industry, contactEmail, status || 'pending', ownerUserId, req.userId]
+      [name, category || 'General', industry, contact_email || contactEmail, status || 'pending', owner_user_id || ownerUserId, req.userId]
     );
 
     res.status(201).json({ vendor: result.rows[0], message: 'Vendor created successfully' });

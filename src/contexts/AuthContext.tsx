@@ -35,15 +35,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         // Check if we have a stored token
         const token = authApi.getToken();
-        
+
         if (!token) {
-          setLoading(false);
+          if (mounted) setLoading(false);
           return;
         }
 
         // Get current user from API
         const result = await authApi.getCurrentUser();
-        
+
         if (!mounted) return;
 
         if (result.error) {
@@ -75,6 +75,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     initializeAuth();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const signOut = async () => {

@@ -72,13 +72,80 @@ router.get('/:id/details', authenticateToken, async (req, res) => {
       [req.params.id]
     );
 
-    res.json({ 
+    res.json({
       assessment,
-      responses: responsesResult.rows 
+      responses: responsesResult.rows
     });
   } catch (error) {
     console.error('Get assessment details error:', error);
     res.status(500).json({ error: 'Failed to get assessment details' });
+  }
+});
+
+// Get assessment by ID (simple)
+router.get('/:id', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT a.*, v.name as vendor_name
+       FROM assessments a
+       JOIN vendors v ON a.vendor_id = v.id
+       WHERE a.id = $1`,
+      [req.params.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Assessment not found' });
+    }
+
+    const assessment = result.rows[0];
+
+    // Check permissions
+    const vendorResult = await pool.query('SELECT owner_user_id FROM vendors WHERE id = $1', [assessment.vendor_id]);
+    const isOwner = vendorResult.rows[0].owner_user_id === req.userId;
+    const hasTPRMRole = req.userRole === 'admin' || req.userRole === 'tprm_analyst';
+
+    if (!isOwner && !hasTPRMRole) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    res.json({ data: assessment });
+  } catch (error) {
+    console.error('Get assessment error:', error);
+    res.status(500).json({ error: 'Failed to get assessment' });
+  }
+});
+
+// Get responses for an assessment
+router.get('/:id/responses', authenticateToken, async (req, res) => {
+  try {
+    const assessmentResult = await pool.query(
+      `SELECT a.*, v.owner_user_id FROM assessments a
+       JOIN vendors v ON a.vendor_id = v.id
+       WHERE a.id = $1`,
+      [req.params.id]
+    );
+
+    if (assessmentResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Assessment not found' });
+    }
+
+    const assessment = assessmentResult.rows[0];
+    const isOwner = assessment.owner_user_id === req.userId;
+    const hasTPRMRole = req.userRole === 'admin' || req.userRole === 'tprm_analyst';
+
+    if (!isOwner && !hasTPRMRole) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const responsesResult = await pool.query(
+      'SELECT * FROM assessment_responses WHERE assessment_id = $1',
+      [req.params.id]
+    );
+
+    res.json({ data: responsesResult.rows });
+  } catch (error) {
+    console.error('Get responses error:', error);
+    res.status(500).json({ error: 'Failed to get responses' });
   }
 });
 

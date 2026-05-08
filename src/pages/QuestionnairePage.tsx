@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { RiskScoreResults } from '@/components/RiskScoreResults';
 import { RiskScoreResult } from '@/lib/riskScoring';
+import { authApi } from '@/lib/api';
 import {
   FileText, ChevronRight, ChevronLeft, Shield, Lock, AlertCircle, FileCheck, Server,
   CheckCircle2, Loader2,
@@ -19,6 +20,16 @@ const categoryIcons: Record<string, React.ElementType> = {
   'Data Protection': Lock, 'Access Control': Shield, 'Incident Response': AlertCircle,
   'Compliance': FileCheck, 'Security Operations': Server, 'Business Continuity': CheckCircle2,
 };
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+async function apiFetch(endpoint: string, options: RequestInit = {}) {
+  const token = authApi.getToken();
+  const headers: HeadersInit = { 'Content-Type': 'application/json', ...options.headers };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
+  return res.json();
+}
 
 type Question = {
   id: string; category: string; question: string; type: string;
@@ -41,23 +52,17 @@ export function QuestionnairePage() {
     if (!assessmentId) return;
     (async () => {
       try {
-        // Fetch questions, assessment, and responses from API
-        const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-        const [qsRes, assessmentRes, responsesRes] = await Promise.all([
-          fetch(`${apiBase}/api/questions`),
-          fetch(`${apiBase}/api/assessments/${assessmentId}`),
-          fetch(`${apiBase}/api/assessments/${assessmentId}/responses`),
+        const [qs, assessment, responses] = await Promise.all([
+          apiFetch('/api/questions'),
+          apiFetch(`/api/assessments/${assessmentId}`),
+          apiFetch(`/api/assessments/${assessmentId}/responses`),
         ]);
-        
-        const qs = await qsRes.json();
-        const assessment = await assessmentRes.json();
-        const responses = await responsesRes.json();
-        
+
         setQuestions(qs.data || []);
         const map: Record<string, any> = {};
         for (const r of responses.data || []) map[r.question_id] = r.answer;
         setAnswers(map);
-        
+
         if (assessment.data && (assessment.data.status === 'submitted' || assessment.data.status === 'reviewed')) {
           setReadonly(true);
           setScoreResult(buildResultFromAssessment(assessment.data));
@@ -92,12 +97,9 @@ export function QuestionnairePage() {
 
   const handleAnswer = async (qId: string, answer: any) => {
     setAnswers(prev => ({ ...prev, [qId]: answer }));
-    // Autosave to API
     try {
-      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-      await fetch(`${apiBase}/api/assessments/${assessmentId}/responses`, {
+      await apiFetch(`/api/assessments/${assessmentId}/responses`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question_id: qId, answer }),
       });
     } catch (err) {
@@ -108,15 +110,10 @@ export function QuestionnairePage() {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-      const res = await fetch(`${apiBase}/api/assessments/${assessmentId}/submit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      const data = await res.json();
-      
-      if (!res.ok) throw new Error(data.error || 'Submission failed');
-      
+      const data = await apiFetch(`/api/assessments/${assessmentId}/submit`, { method: 'POST' });
+
+      if (data.error) throw new Error(data.error);
+
       toast.success('Assessment submitted');
       setAiSummary(data.aiSummary);
       setScoreResult(data.scoreResult);
