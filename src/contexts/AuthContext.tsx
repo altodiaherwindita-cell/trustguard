@@ -19,6 +19,7 @@ interface AuthCtx {
   isAdmin: boolean;
   isVendor: boolean;
   signOut: () => Promise<void>;
+  setUserFromToken: (userData: User) => void;
 }
 
 const AuthContext = createContext<AuthCtx | undefined>(undefined);
@@ -76,8 +77,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     initializeAuth();
 
+    // Listen for auth-user-changed events (e.g., after login)
+    const handleAuthUserChanged = () => {
+      const storedUser = authApi.getStoredUser();
+      if (storedUser && mounted) {
+        setUser({
+          id: storedUser.id,
+          email: storedUser.email,
+          fullName: storedUser.fullName,
+          company: storedUser.company,
+          roles: storedUser.roles as Role[],
+        });
+      }
+    };
+
+    window.addEventListener('auth-user-changed', handleAuthUserChanged);
+
     return () => {
       mounted = false;
+      window.removeEventListener('auth-user-changed', handleAuthUserChanged);
     };
   }, []);
 
@@ -99,6 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isTPRM: (user?.roles.includes('admin') ?? false) || (user?.roles.includes('tprm_analyst') ?? false),
     isVendor: user?.roles.includes('vendor') ?? false,
     signOut,
+    setUserFromToken: setUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

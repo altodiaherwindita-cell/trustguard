@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { Shield, Loader2 } from 'lucide-react';
 
 export default function AuthPage() {
-  const { user } = useAuth();
+  const { user, setUserFromToken } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const redirect = params.get('redirect') || '/';
@@ -28,6 +28,14 @@ export default function AuthPage() {
     const result = await authApi.login({ email, password });
     setLoading(false);
     if (result.error) return toast.error(result.error);
+    
+    // Update user state immediately after successful login
+    if (result.data?.user) {
+      localStorage.setItem('auth_user', JSON.stringify(result.data.user));
+      // Directly update the AuthContext state
+      setUserFromToken(result.data.user);
+    }
+    
     toast.success('Welcome back');
     navigate(redirect, { replace: true });
   };
