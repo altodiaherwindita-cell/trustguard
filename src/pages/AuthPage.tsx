@@ -29,6 +29,7 @@ export default function AuthPage() {
     setLoading(false);
     if (result.error) return toast.error(result.error);
     toast.success('Welcome back');
+    navigate(redirect, { replace: true });
   };
 
   return (

@@ -55,11 +55,11 @@ services:
       dockerfile: Dockerfile
       target: production
       args:
-        VITE_API_URL: http://api:3000
+        VITE_API_URL: ${VITE_API_URL:-http://api:3000}
     container_name: trustguard-web
     restart: unless-stopped
     environment:
-      VITE_API_URL: http://api:3000
+      VITE_API_URL: ${VITE_API_URL:-http://api:3000}
     depends_on:
       - api
     ports:
