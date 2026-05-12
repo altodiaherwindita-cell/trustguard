@@ -208,14 +208,15 @@ export const usersApi = {
 
   async updateRole(userId: string, role: string): Promise<ApiResponse<void>> {
     return request<void>(`/api/users/${userId}/role`, {
-      method: 'PUT',
+      method: 'PATCH',
       body: JSON.stringify({ role }),
     });
   },
 
-  async toggleActive(userId: string): Promise<ApiResponse<void>> {
-    return request<void>(`/api/users/${userId}/toggle-active`, {
-      method: 'PUT',
+  async toggleActive(userId: string, isActive: boolean): Promise<ApiResponse<void>> {
+    return request<void>(`/api/users/${userId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ isActive }),
     });
   },
 };
