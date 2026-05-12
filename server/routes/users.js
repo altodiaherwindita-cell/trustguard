@@ -12,19 +12,14 @@ router.get('/', authenticateToken, requireRole('admin'), async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT u.id, u.email, u.full_name, u.company, u.is_active, u.created_at,
-              ARRAY_AGG(ur.role) as roles
+              COALESCE(ARRAY_AGG(ur.role) FILTER (WHERE ur.role IS NOT NULL), ARRAY[]::text[]) as roles
        FROM users u
        LEFT JOIN user_roles ur ON u.id = ur.user_id
        GROUP BY u.id
        ORDER BY u.created_at DESC`
     );
 
-    const users = result.rows.map(user => ({
-      ...user,
-      roles: user.roles.filter(Boolean)
-    }));
-
-    res.json({ users });
+    res.json({ users: result.rows });
   } catch (error) {
     console.error('Get users error:', error);
     res.status(500).json({ error: 'Failed to get users' });
@@ -36,7 +31,7 @@ router.get('/:id', authenticateToken, requireRole('admin', 'tprm_analyst'), asyn
   try {
     const result = await pool.query(
       `SELECT u.id, u.email, u.full_name, u.company, u.is_active, u.created_at,
-              ARRAY_AGG(ur.role) as roles
+              COALESCE(ARRAY_AGG(ur.role) FILTER (WHERE ur.role IS NOT NULL), ARRAY[]::text[]) as roles
        FROM users u
        LEFT JOIN user_roles ur ON u.id = ur.user_id
        WHERE u.id = $1
@@ -47,10 +42,7 @@ router.get('/:id', authenticateToken, requireRole('admin', 'tprm_analyst'), asyn
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const user = result.rows[0];
-    user.roles = user.roles.filter(Boolean);
-
-    res.json({ user });
+    res.json({ user: result.rows[0] });
   } catch (error) {
     console.error('Get user error:', error);
     res.status(500).json({ error: 'Failed to get user' });

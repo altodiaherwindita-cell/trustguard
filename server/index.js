@@ -10,6 +10,7 @@ import vendorRoutes from './routes/vendors.js';
 import assessmentRoutes from './routes/assessments.js';
 import questionRoutes from './routes/questions.js';
 import invitationRoutes from './routes/invitations.js';
+import { checkSessionActivity } from './middleware/auth.js';
 
 dotenv.config();
 
@@ -85,6 +86,9 @@ const authLimiter = rateLimit({
 
 app.use('/api/', limiter);
 app.use('/api/auth', authLimiter);
+
+// Apply session activity check to all authenticated routes
+app.use('/api', checkSessionActivity);
 
 // Health check endpoint with API info
 app.get('/health', (req, res) => {
