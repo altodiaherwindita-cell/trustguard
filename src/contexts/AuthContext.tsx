@@ -28,6 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -38,7 +39,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const token = authApi.getToken();
 
         if (!token) {
-          if (mounted) setLoading(false);
+          if (mounted) {
+            setLoading(false);
+            setInitialized(true);
+          }
           return;
         }
 
@@ -49,8 +53,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (result.error) {
           console.error('Auth error:', result.error);
-          authApi.clearStorage();
+          // Don't clear storage immediately - let the stored user be used as fallback
+          const storedUser = authApi.getStoredUser();
+          if (storedUser) {
+            setUser({
+              id: storedUser.id,
+              email: storedUser.email,
+              fullName: storedUser.fullName,
+              company: storedUser.company,
+              roles: storedUser.roles as Role[],
+            });
+          } else {
+            authApi.clearStorage();
+          }
           setLoading(false);
+          setInitialized(true);
           return;
         }
 
@@ -63,14 +80,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             company: apiUser.company,
             roles: apiUser.roles as Role[],
           });
+          // Update stored user to match API response
+          localStorage.setItem('auth_user', JSON.stringify(apiUser));
         }
         setLoading(false);
+        setInitialized(true);
       } catch (err) {
         console.error('Auth initialization error:', err);
-        authApi.clearStorage();
+        // Fallback to stored user on error
+        const storedUser = authApi.getStoredUser();
+        if (storedUser && mounted) {
+          setUser({
+            id: storedUser.id,
+            email: storedUser.email,
+            fullName: storedUser.fullName,
+            company: storedUser.company,
+            roles: storedUser.roles as Role[],
+          });
+        } else {
+          authApi.clearStorage();
+        }
         if (mounted) {
           setError(err instanceof Error ? err.message : 'Unknown error');
           setLoading(false);
+          setInitialized(true);
         }
       }
     };

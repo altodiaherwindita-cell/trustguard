@@ -14,9 +14,28 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { user, isTPRM, isAdmin, signOut, loading } = useAuth();
   
-  // Don't render sidebar while auth is loading to prevent blank page
+  // Show a minimal sidebar while auth is loading to prevent layout shift
   if (loading) {
-    return null;
+    return (
+      <aside className="relative flex flex-col bg-sidebar border-r border-sidebar-border h-screen w-[280px]">
+        <div className="flex items-center gap-3 p-6 border-b border-sidebar-border">
+          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-sidebar-primary">
+            <Shield className="w-5 h-5 text-sidebar-primary-foreground" />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-lg font-bold text-sidebar-foreground">RiskGuard</span>
+            <span className="text-xs text-sidebar-foreground/60">TPRM Platform</span>
+          </div>
+        </div>
+        <div className="flex-1 p-4 space-y-1">
+          <div className="animate-pulse space-y-3">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-10 bg-sidebar-accent rounded-lg opacity-50" />
+            ))}
+          </div>
+        </div>
+      </aside>
+    );
   }
 
   const navigation = [
