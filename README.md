@@ -71,7 +71,7 @@ This will start:
 
 Default admin credentials:
 - Email: admin@trustguard.ai
-- Password: admin123 (**Change immediately!**)
+- Password: ChangeMe@889 (**Change immediately!**)
 
 ### Option 2: Local Development
 

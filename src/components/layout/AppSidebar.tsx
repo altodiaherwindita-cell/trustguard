@@ -23,7 +23,7 @@ export function AppSidebar() {
             <Shield className="w-5 h-5 text-sidebar-primary-foreground" />
           </div>
           <div className="flex flex-col">
-            <span className="text-lg font-bold text-sidebar-foreground">RiskGuard</span>
+            <span className="text-lg font-bold text-sidebar-foreground">TrustGuard</span>
             <span className="text-xs text-sidebar-foreground/60">TPRM Platform</span>
           </div>
         </div>
@@ -42,6 +42,7 @@ export function AppSidebar() {
     { name: 'Dashboard', href: '/', icon: LayoutDashboard, show: true },
     { name: 'Vendors', href: '/vendors', icon: Building2, show: isTPRM },
     { name: 'Assessments', href: '/assessments', icon: ClipboardList, show: isTPRM },
+    { name: 'Questionnaires', href: '/questionnaires', icon: FileText, show: isTPRM },
     { name: 'AI Assistant', href: '/ai-assistant', icon: Bot, show: isTPRM },
     { name: 'Settings', href: '/settings', icon: Settings, show: true },
   ].filter(n => n.show);
@@ -62,7 +63,7 @@ export function AppSidebar() {
         <AnimatePresence>
           {!collapsed && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col">
-              <span className="text-lg font-bold text-sidebar-foreground">RiskGuard</span>
+              <span className="text-lg font-bold text-sidebar-foreground">TrustGuard</span>
               <span className="text-xs text-sidebar-foreground/60">TPRM Platform</span>
             </motion.div>
           )}
