@@ -3,7 +3,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import {
-  LayoutDashboard, Building2, ClipboardList, Bot, Settings, Shield,
+  LayoutDashboard, Building2, ClipboardList, Bot, Settings, Shield, FileText,
   ChevronLeft, ChevronRight, LogOut,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
