@@ -258,3 +258,6 @@ export const questionsApi = {
     });
   },
 };
+
+// Note: Evidence, Audit, and Remediation APIs are defined but backend routes need to be implemented
+// These interfaces are kept for future implementation
