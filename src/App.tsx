@@ -10,6 +10,7 @@ import { Dashboard } from "@/pages/Dashboard";
 import { VendorsPage } from "@/pages/VendorsPage";
 import { AssessmentsPage } from "@/pages/AssessmentsPage";
 import { QuestionnairePage } from "@/pages/QuestionnairePage";
+import { QuestionnaireManagementPage } from "@/pages/QuestionnaireManagementPage";
 import { AIAssistantPage } from "@/pages/AIAssistantPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import AuthPage from "@/pages/AuthPage";
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/vendors" element={<Protected role="tprm"><VendorsPage /></Protected>} />
             <Route path="/assessments" element={<Protected role="tprm"><AssessmentsPage /></Protected>} />
             <Route path="/questionnaire/:assessmentId" element={<Protected><QuestionnairePage /></Protected>} />
+            <Route path="/questionnaires" element={<Protected role="tprm"><QuestionnaireManagementPage /></Protected>} />
             <Route path="/ai-assistant" element={<Protected role="tprm"><AIAssistantPage /></Protected>} />
             <Route path="/settings" element={<Protected><SettingsPage /></Protected>} />
             <Route path="*" element={<NotFound />} />

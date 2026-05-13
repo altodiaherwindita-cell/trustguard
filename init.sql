@@ -138,10 +138,10 @@ INSERT INTO questions (id, category, question, type, options, weight, risk_impac
 ('q9','Security Operations','How frequently do you perform vulnerability assessments?','single-choice','["Weekly","Monthly","Quarterly","Annually","Never"]',7,'medium',9),
 ('q10','Business Continuity','What is your Recovery Time Objective (RTO)?','single-choice','["Under 1 hour","1-4 hours","4-24 hours","Over 24 hours"]',6,'medium',10);
 
--- Create default admin user (password: admin123 - CHANGE IN PRODUCTION!)
--- Password hash is for 'admin123' using bcrypt
+-- Create default admin user (password: ChangeMe@889 - CHANGE IN PRODUCTION!)
+-- Password hash is for 'ChangeMe@889' using bcrypt
 INSERT INTO users (email, password_hash, full_name, company) VALUES
-('admin@trustguard.ai', '$2b$10$rQZxJXyN5KJzJ5vN8qP9mOZGxH7yF8wL2kV3nR4tU6sW1xC0dE2fG', 'Admin User', 'TrustGuard')
+('admin@trustguard.ai', '$2b$12$HHhixK3A0Pj7MmJI3IdHqeQ44eBuknuDaUrhAp2YxNP5Hg5yjc.gi', 'Admin User', 'TrustGuard')
 ON CONFLICT (email) DO NOTHING;
 
 -- Assign admin role to the default admin user

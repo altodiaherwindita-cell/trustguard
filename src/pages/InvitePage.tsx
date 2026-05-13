@@ -52,7 +52,7 @@ export default function InvitePage() {
             <Shield className="w-6 h-6 text-primary-foreground" />
           </div>
           <CardTitle>Vendor Questionnaire Invitation</CardTitle>
-          <CardDescription>RiskGuard TPRM Platform</CardDescription>
+          <CardDescription>TrustGuard TPRM Platform</CardDescription>
         </CardHeader>
         <CardContent className="text-center space-y-4">
           {status === 'loading' && <Loader2 className="w-6 h-6 animate-spin mx-auto" />}

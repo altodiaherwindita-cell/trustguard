@@ -236,6 +236,8 @@ export function SettingsPage() {
                   <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
                   <SelectItem value="claude-3-opus">Claude 3 Opus</SelectItem>
                   <SelectItem value="claude-3-sonnet">Claude 3 Sonnet</SelectItem>
+                  <SelectItem value="gemini-pro">Gemini Pro (Free)</SelectItem>
+                  <SelectItem value="gemini-flash">Gemini Flash (Free)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -220,3 +220,41 @@ export const usersApi = {
     });
   },
 };
+
+// Questions API
+export interface Question {
+  id: string;
+  category: string;
+  question: string;
+  type: string;
+  options?: string[] | null;
+  weight: number;
+  risk_impact: string;
+  display_order: number;
+}
+
+export const questionsApi = {
+  async getAll(): Promise<ApiResponse<Question[]>> {
+    return request<Question[]>('/api/questions');
+  },
+
+  async create(question: Omit<Question, 'id'>): Promise<ApiResponse<Question>> {
+    return request<Question>('/api/questions', {
+      method: 'POST',
+      body: JSON.stringify(question),
+    });
+  },
+
+  async update(id: string, question: Partial<Question>): Promise<ApiResponse<Question>> {
+    return request<Question>(`/api/questions/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(question),
+    });
+  },
+
+  async delete(id: string): Promise<ApiResponse<void>> {
+    return request<void>(`/api/questions/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};

@@ -47,7 +47,7 @@ export default function AuthPage() {
           <div className="mx-auto w-12 h-12 rounded-xl bg-primary flex items-center justify-center mb-2">
             <Shield className="w-6 h-6 text-primary-foreground" />
           </div>
-          <CardTitle className="text-2xl">RiskGuard</CardTitle>
+          <CardTitle className="text-2xl">TrustGuard</CardTitle>
           <CardDescription>Third-Party Risk Management Platform</CardDescription>
         </CardHeader>
         <CardContent>
