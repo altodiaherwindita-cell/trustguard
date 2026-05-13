@@ -259,5 +259,55 @@ export const questionsApi = {
   },
 };
 
-// Note: Evidence, Audit, and Remediation APIs are defined but backend routes need to be implemented
-// These interfaces are kept for future implementation
+// Evidence API
+export interface EvidenceDocument {
+  id: string;
+  assessment_id: string;
+  question_id: string;
+  file_name: string;
+  file_path: string;
+  file_size: number;
+  file_type: string;
+  uploaded_by: string;
+  uploaded_by_email?: string;
+  uploaded_at: string;
+  verified_by?: string;
+  verified_at?: string;
+  status: string;
+  verification_notes?: string;
+  question_text?: string;
+}
+
+export const evidenceApi = {
+  async getByAssessment(assessmentId: string): Promise<ApiResponse<EvidenceDocument[]>> {
+    return request<EvidenceDocument[]>(`/api/evidence/${assessmentId}`);
+  },
+
+  async download(id: string): Promise<void> {
+    const token = localStorage.getItem('auth_token');
+    window.open(`${API_BASE_URL}/api/evidence/${id}/download?token=${token}`, '_blank');
+  },
+
+  async verify(id: string, status: string, notes: string): Promise<ApiResponse<void>> {
+    return request<void>(`/api/evidence/${id}/verify`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, verification_notes: notes }),
+    });
+  },
+
+  async delete(id: string): Promise<ApiResponse<void>> {
+    return request<void>(`/api/evidence/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// Consolidated API export
+export const api = {
+  auth: authApi,
+  vendors: vendorsApi,
+  assessments: assessmentsApi,
+  users: usersApi,
+  questions: questionsApi,
+  evidence: evidenceApi,
+};
