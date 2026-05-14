@@ -13,6 +13,7 @@ import invitationRoutes from './routes/invitations.js';
 import evidenceRoutes from './routes/evidence.js';
 import auditLogRoutes from './routes/audit-logs.js';
 import remediationRoutes from './routes/remediation.js';
+import notificationRoutes from './routes/notifications.js';
 import { checkSessionActivity } from './middleware/auth.js';
 
 dotenv.config();
@@ -112,6 +113,7 @@ app.use('/api/invitations', invitationRoutes);
 app.use('/api/evidence', evidenceRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/remediation', remediationRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Root endpoint with API info
 app.get('/', (req, res) => {
