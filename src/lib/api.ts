@@ -52,6 +52,15 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     });
 
     clearTimeout(timeoutId);
+    
+    // Handle 401 Unauthorized - clear session and trigger logout
+    if (response.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
+      window.dispatchEvent(new CustomEvent('auth-session-expired'));
+      return { error: 'Session expired. Please sign in again.' };
+    }
+    
     const data = await response.json();
 
     if (!response.ok) {

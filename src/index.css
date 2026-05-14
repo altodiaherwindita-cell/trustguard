@@ -121,6 +121,12 @@
   h1, h2, h3, h4, h5, h6 {
     @apply font-semibold tracking-tight;
   }
+  
+  /* Prevent flash of unstyled content and blank page during auth */
+  #root {
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
 }
 
 @layer utilities {
