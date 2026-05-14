@@ -28,7 +28,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -41,7 +40,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!token) {
           if (mounted) {
             setLoading(false);
-            setInitialized(true);
           }
           return;
         }
@@ -67,7 +65,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             authApi.clearStorage();
           }
           setLoading(false);
-          setInitialized(true);
           return;
         }
 
@@ -84,7 +81,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.setItem('auth_user', JSON.stringify(apiUser));
         }
         setLoading(false);
-        setInitialized(true);
       } catch (err) {
         console.error('Auth initialization error:', err);
         // Fallback to stored user on error
@@ -103,7 +99,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (mounted) {
           setError(err instanceof Error ? err.message : 'Unknown error');
           setLoading(false);
-          setInitialized(true);
         }
       }
     };

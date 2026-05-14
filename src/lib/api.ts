@@ -1,5 +1,6 @@
 // API Client for TrustGuard AI Backend
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_TIMEOUT_MS = 5000; // 5 second timeout
 
 interface ApiResponse<T> {
   data?: T;
@@ -39,12 +40,18 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     headers['Authorization'] = `Bearer ${token}`;
   }
 
+  // Create AbortController for timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
       headers,
+      signal: controller.signal,
     });
 
+    clearTimeout(timeoutId);
     const data = await response.json();
 
     if (!response.ok) {
@@ -53,7 +60,11 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
     return { data: data as T };
   } catch (error) {
+    clearTimeout(timeoutId);
     console.error('API request error:', error);
+    if (error instanceof Error && error.name === 'AbortError') {
+      return { error: 'Request timed out. Please check your connection.' };
+    }
     return { error: error instanceof Error ? error.message : 'Network error' };
   }
 }
