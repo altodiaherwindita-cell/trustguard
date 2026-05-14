@@ -428,7 +428,7 @@ INSERT INTO notification_templates (name, type, subject_template, body_template,
 ('assessment_returned', 'email',
  'Assessment Returned for Revision - {{vendor_name}}',
  'Dear {{vendor_contact}},<br><br>Your security assessment for {{vendor_name}} has been returned for revision.<br><br>Please review the comments and resubmit.<br><br>Comments: {{reviewer_comments}}<br><br>Best regards,<br>TrustGuard AI Team',
- '["vendor_name", "vendor_contact", "reviewer_comments"])')
+ '["vendor_name", "vendor_contact", "reviewer_comments"]')
 
 ON CONFLICT (name) DO UPDATE SET
   subject_template = EXCLUDED.subject_template,
