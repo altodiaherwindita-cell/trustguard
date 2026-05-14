@@ -148,25 +148,41 @@ export interface Vendor {
 
 export const vendorsApi = {
   async getAll(): Promise<ApiResponse<Vendor[]>> {
-    return request<Vendor[]>('/api/vendors');
+    const result = await request<{ vendors: Vendor[] }>('/api/vendors');
+    if (result.data) {
+      return { data: result.data.vendors };
+    }
+    return result;
   },
 
   async getById(id: string): Promise<ApiResponse<Vendor>> {
-    return request<Vendor>(`/api/vendors/${id}`);
+    const result = await request<{ vendor: Vendor }>(`/api/vendors/${id}`);
+    if (result.data) {
+      return { data: result.data.vendor };
+    }
+    return result;
   },
 
   async create(vendor: Omit<Vendor, 'id' | 'created_at' | 'updated_at'>): Promise<ApiResponse<Vendor>> {
-    return request<Vendor>('/api/vendors', {
+    const result = await request<{ vendor: Vendor }>('/api/vendors', {
       method: 'POST',
       body: JSON.stringify(vendor),
     });
+    if (result.data) {
+      return { data: result.data.vendor };
+    }
+    return result;
   },
 
   async update(id: string, vendor: Partial<Vendor>): Promise<ApiResponse<Vendor>> {
-    return request<Vendor>(`/api/vendors/${id}`, {
+    const result = await request<{ vendor: Vendor }>(`/api/vendors/${id}`, {
       method: 'PUT',
       body: JSON.stringify(vendor),
     });
+    if (result.data) {
+      return { data: result.data.vendor };
+    }
+    return result;
   },
 
   async delete(id: string): Promise<ApiResponse<void>> {
@@ -189,25 +205,41 @@ export interface Assessment {
 
 export const assessmentsApi = {
   async getAll(): Promise<ApiResponse<(Assessment & { vendors?: { name: string } })[]>> {
-    return request<(Assessment & { vendors?: { name: string } })[]>('/api/assessments');
+    const result = await request<{ assessments: (Assessment & { vendors?: { name: string } })[] }>('/api/assessments');
+    if (result.data) {
+      return { data: result.data.assessments };
+    }
+    return result;
   },
 
   async getById(id: string): Promise<ApiResponse<Assessment>> {
-    return request<Assessment>(`/api/assessments/${id}`);
+    const result = await request<{ assessment: Assessment }>(`/api/assessments/${id}`);
+    if (result.data) {
+      return { data: result.data.assessment };
+    }
+    return result;
   },
 
   async create(assessment: { vendor_id: string; status?: string }): Promise<ApiResponse<Assessment>> {
-    return request<Assessment>('/api/assessments', {
+    const result = await request<{ assessment: Assessment }>('/api/assessments', {
       method: 'POST',
       body: JSON.stringify(assessment),
     });
+    if (result.data) {
+      return { data: result.data.assessment };
+    }
+    return result;
   },
 
   async update(id: string, assessment: Partial<Assessment>): Promise<ApiResponse<Assessment>> {
-    return request<Assessment>(`/api/assessments/${id}`, {
+    const result = await request<{ assessment: Assessment }>(`/api/assessments/${id}`, {
       method: 'PUT',
       body: JSON.stringify(assessment),
     });
+    if (result.data) {
+      return { data: result.data.assessment };
+    }
+    return result;
   },
 };
 
