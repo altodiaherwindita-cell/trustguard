@@ -91,18 +91,6 @@ const authLimiter = rateLimit({
 app.use('/api/', limiter);
 app.use('/api/auth', authLimiter);
 
-// Apply session activity check to all authenticated routes
-app.use('/api', checkSessionActivity);
-
-// Health check endpoint with API info
-app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: dbReady ? 'healthy' : 'degraded',
-    database: dbReady ? 'connected' : 'disconnected',
-    timestamp: new Date().toISOString() 
-  });
-});
-
 // API Routes - always register them, they'll handle DB errors internally
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -114,6 +102,18 @@ app.use('/api/evidence', evidenceRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/remediation', remediationRoutes);
 app.use('/api/notifications', notificationRoutes);
+
+// Note: Session activity check is now handled within authenticateToken middleware
+// to avoid interfering with public endpoints and routes that have their own auth logic
+
+// Health check endpoint with API info
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: dbReady ? 'healthy' : 'degraded',
+    database: dbReady ? 'connected' : 'disconnected',
+    timestamp: new Date().toISOString() 
+  });
+});
 
 // Root endpoint with API info
 app.get('/', (req, res) => {

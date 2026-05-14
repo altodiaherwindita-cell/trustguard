@@ -149,8 +149,12 @@ export interface Vendor {
 export const vendorsApi = {
   async getAll(): Promise<ApiResponse<Vendor[]>> {
     const result = await request<{ vendors: Vendor[] }>('/api/vendors');
-    if (result.data) {
+    if (result.data?.vendors) {
       return { data: result.data.vendors };
+    }
+    // Handle case where result.data exists but vendors is missing, or return empty array on error
+    if (result.error) {
+      return { data: [] };
     }
     return result;
   },
@@ -206,8 +210,12 @@ export interface Assessment {
 export const assessmentsApi = {
   async getAll(): Promise<ApiResponse<(Assessment & { vendors?: { name: string } })[]>> {
     const result = await request<{ assessments: (Assessment & { vendors?: { name: string } })[] }>('/api/assessments');
-    if (result.data) {
+    if (result.data?.assessments) {
       return { data: result.data.assessments };
+    }
+    // Handle case where result.data exists but assessments is missing, or return empty array on error
+    if (result.error) {
+      return { data: [] };
     }
     return result;
   },
@@ -255,7 +263,15 @@ export interface UserProfile {
 
 export const usersApi = {
   async getAll(): Promise<ApiResponse<UserProfile[]>> {
-    return request<UserProfile[]>('/api/users');
+    const result = await request<{ users: UserProfile[] }>('/api/users');
+    if (result.data?.users) {
+      return { data: result.data.users };
+    }
+    // Handle case where result.data exists but users is missing, or return empty array on error
+    if (result.error) {
+      return { data: [] };
+    }
+    return result;
   },
 
   async updateRole(userId: string, role: string): Promise<ApiResponse<void>> {
@@ -287,7 +303,15 @@ export interface Question {
 
 export const questionsApi = {
   async getAll(): Promise<ApiResponse<Question[]>> {
-    return request<Question[]>('/api/questions');
+    const result = await request<{ data: Question[] }>('/api/questions');
+    if (result.data?.data) {
+      return { data: result.data.data };
+    }
+    // Handle case where result.data exists but data array is missing, or return empty array on error
+    if (result.error) {
+      return { data: [] };
+    }
+    return result;
   },
 
   async create(question: Omit<Question, 'id'>): Promise<ApiResponse<Question>> {
