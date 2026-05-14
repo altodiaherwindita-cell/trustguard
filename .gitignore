@@ -1,75 +1,44 @@
 ```
-# Build artifacts
-dist/
-build/
-*.css
-*.js
-*.min.js
-*.min.css
-*.bundle.js
-*.bundle.css
-
 # Dependencies
 node_modules/
 
-# Environment variables
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+
+# Environment
 .env
 .env.local
-*.env
+*.env.*
 
-# Logs
-*.log
-
-# Temporary files
-*.tmp
-*.temp
-*.bak
-
-# OS generated files
-.DS_Store
-Thumbs.db
-
-# IDE files
+# Editors
 .vscode/
 .idea/
-*.swp
-*.swo
 
-# Python specific
+# Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-.Python
-*.so
+
+# Build outputs
+dist/
+build/
+*.out
 
 # Coverage reports
 coverage/
 htmlcov/
-.coverage
+*.coverage
 
-# Testing
-.pytest_cache/
+# MyPy cache
 .mypy_cache/
-.nyc_output/
-coverage/lcov-report/
 
-# Distribution / packaging
-.Python
-*.egg-info/
-.installed.cfg
-*.egg
+# Pytest cache
+.pytest_cache/
 
-# Local configuration
-.env*
-!.env.example
-
-# Compressed files
-*.zip
-*.tar.gz
-*.tar.bz2
-*.tar.xz
-*.gz
-*.rar
-*.7z
+# OS generated files
+.DS_Store
+Thumbs.db
 ```

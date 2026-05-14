@@ -30,7 +30,7 @@ interface AuthResponse {
 // Helper function to handle API requests
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
   const token = localStorage.getItem('auth_token');
-  
+
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
     ...options.headers,
@@ -270,5 +270,176 @@ export const questionsApi = {
   },
 };
 
-// Note: Evidence, Audit, and Remediation APIs are defined but backend routes need to be implemented
-// These interfaces are kept for future implementation
+// Evidence API
+export interface EvidenceDocument {
+  id: string;
+  assessment_id: string;
+  question_id?: string;
+  file_name: string;
+  file_path: string;
+  file_size: number;
+  file_type: string;
+  file_hash?: string;
+  description?: string;
+  uploaded_by: string;
+  uploaded_by_name?: string;
+  uploaded_by_email?: string;
+  is_vendor_upload: boolean;
+  status: 'pending' | 'validated' | 'rejected';
+  validated_by?: string;
+  validated_at?: string;
+  validation_notes?: string;
+  rejection_reason?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export const evidenceApi = {
+  async upload(
+    assessmentId: string,
+    file: File,
+    questionId?: string,
+    description?: string
+  ): Promise<ApiResponse<EvidenceDocument>> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('assessment_id', assessmentId);
+    if (questionId) formData.append('question_id', questionId);
+    if (description) formData.append('description', description);
+
+    const token = localStorage.getItem('auth_token');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS * 2); // Longer timeout for uploads
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/evidence`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+      const data = await response.json();
+
+      if (!response.ok) {
+        return { error: data.error || data.message || 'Upload failed' };
+      }
+
+      return { data: data.evidence };
+    } catch (error) {
+      clearTimeout(timeoutId);
+      console.error('Evidence upload error:', error);
+      return { error: error instanceof Error ? error.message : 'Upload failed' };
+    }
+  },
+
+  async getByAssessment(assessmentId: string): Promise<ApiResponse<EvidenceDocument[]>> {
+    return request<EvidenceDocument[]>(`/api/evidence/${assessmentId}`);
+  },
+
+  async download(id: string): Promise<Blob> {
+    const token = localStorage.getItem('auth_token');
+    const response = await fetch(`${API_BASE_URL}/api/evidence/${id}/download`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Download failed');
+    }
+
+    return await response.blob();
+  },
+
+  async verify(id: string, status: 'validated' | 'rejected', validationNotes?: string): Promise<ApiResponse<EvidenceDocument>> {
+    return request<EvidenceDocument>(`/api/evidence/${id}/verify`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, validation_notes: validationNotes }),
+    });
+  },
+
+  async delete(id: string): Promise<ApiResponse<void>> {
+    return request<void>(`/api/evidence/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// Audit Logs API
+export interface AuditLog {
+  id: string;
+  user_id?: string;
+  user_email?: string;
+  user_name?: string;
+  action: string;
+  resource_type: string;
+  resource_id?: string;
+  resource_name?: string;
+  ip_address?: string;
+  user_agent?: string;
+  created_at: string;
+}
+
+export interface AuditLogFilters {
+  userId?: string;
+  action?: string;
+  resourceType?: string;
+  startDate?: string;
+  endDate?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export const auditLogApi = {
+  async get(filters?: AuditLogFilters): Promise<ApiResponse<{ logs: AuditLog[]; pagination: { total: number; limit: number; offset: number } }>> {
+    const params = new URLSearchParams();
+    if (filters?.userId) params.append('userId', filters.userId);
+    if (filters?.action) params.append('action', filters.action);
+    if (filters?.resourceType) params.append('resourceType', filters.resourceType);
+    if (filters?.startDate) params.append('startDate', filters.startDate);
+    if (filters?.endDate) params.append('endDate', filters.endDate);
+    if (filters?.limit) params.append('limit', String(filters.limit));
+    if (filters?.offset) params.append('offset', String(filters.offset));
+
+    const queryString = params.toString();
+    return request(`/api/audit-logs${queryString ? `?${queryString}` : ''}`);
+  },
+
+  async getByUser(userId: string, limit?: number, offset?: number): Promise<ApiResponse<{ logs: AuditLog[]; pagination: { total: number; limit: number; offset: number } }>> {
+    const params = new URLSearchParams();
+    if (limit) params.append('limit', String(limit));
+    if (offset) params.append('offset', String(offset));
+    
+    const queryString = params.toString();
+    return request(`/api/audit-logs/user/${userId}${queryString ? `?${queryString}` : ''}`);
+  },
+
+  async export(startDate?: string, endDate?: string, format: 'json' | 'csv' = 'json'): Promise<Blob> {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    params.append('format', format);
+
+    const token = localStorage.getItem('auth_token');
+    const response = await fetch(`${API_BASE_URL}/api/audit-logs/export?${params.toString()}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Export failed');
+    }
+
+    return await response.blob();
+  },
+
+  async getStats(days?: number): Promise<ApiResponse<any>> {
+    const params = days ? `?days=${days}` : '';
+    return request(`/api/audit-logs/stats${params}`);
+  },
+};
