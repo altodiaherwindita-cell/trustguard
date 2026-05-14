@@ -443,3 +443,167 @@ export const auditLogApi = {
     return request(`/api/audit-logs/stats${params}`);
   },
 };
+
+// Remediation API
+export interface RemediationItem {
+  id: string;
+  assessment_id: string;
+  question_id?: string;
+  finding: string;
+  description: string;
+  priority: 'critical' | 'high' | 'medium' | 'low';
+  status: 'open' | 'in_progress' | 'completed' | 'verified' | 'closed';
+  due_date?: string;
+  assigned_to?: string;
+  assigned_to_name?: string;
+  assigned_to_email?: string;
+  created_by: string;
+  created_by_name?: string;
+  completed_at?: string;
+  verified_at?: string;
+  closed_at?: string;
+  closed_by?: string;
+  comments: Array<{
+    id: string;
+    user_id: string;
+    user_name?: string;
+    comment: string;
+    created_at: string;
+  }>;
+  linked_evidence: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateRemediationItem {
+  assessment_id: string;
+  question_id?: string;
+  finding: string;
+  description: string;
+  priority: 'critical' | 'high' | 'medium' | 'low';
+  due_date?: string;
+  assigned_to?: string;
+}
+
+export const remediationApi = {
+  async getByAssessment(assessmentId: string): Promise<ApiResponse<RemediationItem[]>> {
+    return request<RemediationItem[]>(`/api/remediation/${assessmentId}`);
+  },
+
+  async getAll(): Promise<ApiResponse<RemediationItem[]>> {
+    return request<RemediationItem[]>('/api/remediation');
+  },
+
+  async create(item: CreateRemediationItem): Promise<ApiResponse<RemediationItem>> {
+    return request<RemediationItem>('/api/remediation', {
+      method: 'POST',
+      body: JSON.stringify(item),
+    });
+  },
+
+  async update(id: string, updates: Partial<RemediationItem>): Promise<ApiResponse<RemediationItem>> {
+    return request<RemediationItem>(`/api/remediation/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    });
+  },
+
+  async complete(id: string, comment?: string): Promise<ApiResponse<RemediationItem>> {
+    return request<RemediationItem>(`/api/remediation/${id}/complete`, {
+      method: 'PATCH',
+      body: JSON.stringify({ comment }),
+    });
+  },
+
+  async verify(id: string, comment?: string): Promise<ApiResponse<RemediationItem>> {
+    return request<RemediationItem>(`/api/remediation/${id}/verify`, {
+      method: 'PATCH',
+      body: JSON.stringify({ comment }),
+    });
+  },
+
+  async close(id: string, comment?: string): Promise<ApiResponse<RemediationItem>> {
+    return request<RemediationItem>(`/api/remediation/${id}/close`, {
+      method: 'PATCH',
+      body: JSON.stringify({ comment }),
+    });
+  },
+
+  async addComment(id: string, comment: string): Promise<ApiResponse<RemediationItem>> {
+    return request<RemediationItem>(`/api/remediation/${id}/comment`, {
+      method: 'POST',
+      body: JSON.stringify({ comment }),
+    });
+  },
+};
+
+// Notifications API
+export interface Notification {
+  id: string;
+  user_id?: string;
+  recipient_email?: string;
+  type: 'info' | 'warning' | 'error' | 'success';
+  priority: 'low' | 'normal' | 'high' | 'urgent';
+  category: 'assessment' | 'remediation' | 'evidence' | 'system' | 'security';
+  title: string;
+  message: string;
+  action_url?: string;
+  metadata?: Record<string, any>;
+  status: 'pending' | 'sent' | 'read' | 'expired';
+  read_at?: string;
+  expires_at?: string;
+  created_at: string;
+}
+
+export interface NotificationTemplate {
+  id: string;
+  name: string;
+  subject: string;
+  body: string;
+  variables?: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export const notificationsApi = {
+  async getAll(limit?: number, offset?: number, unreadOnly?: boolean): Promise<ApiResponse<{ 
+    notifications: Notification[]; 
+    pagination: { total: number; limit: number; offset: number };
+    unreadCount: number;
+  }>> {
+    const params = new URLSearchParams();
+    if (limit) params.append('limit', String(limit));
+    if (offset) params.append('offset', String(offset));
+    if (unreadOnly) params.append('unreadOnly', 'true');
+    
+    const queryString = params.toString();
+    return request(`/api/notifications${queryString ? `?${queryString}` : ''}`);
+  },
+
+  async markAsRead(id: string): Promise<ApiResponse<{ notification: Notification }>> {
+    return request(`/api/notifications/${id}/read`, {
+      method: 'PATCH',
+    });
+  },
+
+  async markAllAsRead(): Promise<ApiResponse<{ updated: number; message: string }>> {
+    return request('/api/notifications/read-all', {
+      method: 'PATCH',
+    });
+  },
+
+  async getUnreadCount(): Promise<ApiResponse<{ unreadCount: number }>> {
+    return request('/api/notifications/unread-count');
+  },
+
+  async getTemplates(): Promise<ApiResponse<{ templates: NotificationTemplate[] }>> {
+    return request('/api/notifications/templates');
+  },
+
+  async updateTemplate(id: string, updates: { subject?: string; body?: string; variables?: string[] }): Promise<ApiResponse<{ template: NotificationTemplate }>> {
+    return request(`/api/notifications/templates/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    });
+  },
+};
