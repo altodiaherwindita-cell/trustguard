@@ -51,20 +51,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (result.error) {
           console.error('Auth error:', result.error);
-          // Don't clear storage immediately - let the stored user be used as fallback
-          const storedUser = authApi.getStoredUser();
-          if (storedUser) {
-            setUser({
-              id: storedUser.id,
-              email: storedUser.email,
-              fullName: storedUser.fullName,
-              company: storedUser.company,
-              roles: storedUser.roles as Role[],
-            });
-          } else {
-            authApi.clearStorage();
+          // Clear storage on auth error (including session expiration)
+          authApi.clearStorage();
+          if (mounted) {
+            setLoading(false);
           }
-          setLoading(false);
           return;
         }
 
@@ -119,11 +110,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
+    // Listen for session expiration events
+    const handleSessionExpired = () => {
+      console.log('Session expired, clearing user state');
+      if (mounted) {
+        setUser(null);
+        authApi.clearStorage();
+      }
+    };
+
     window.addEventListener('auth-user-changed', handleAuthUserChanged);
+    window.addEventListener('auth-session-expired', handleSessionExpired);
 
     return () => {
       mounted = false;
       window.removeEventListener('auth-user-changed', handleAuthUserChanged);
+      window.removeEventListener('auth-session-expired', handleSessionExpired);
     };
   }, []);
 
