@@ -10,6 +10,11 @@ import vendorRoutes from './routes/vendors.js';
 import assessmentRoutes from './routes/assessments.js';
 import questionRoutes from './routes/questions.js';
 import invitationRoutes from './routes/invitations.js';
+import evidenceRoutes from './routes/evidence.js';
+import auditLogRoutes from './routes/audit-logs.js';
+import remediationRoutes from './routes/remediation.js';
+import notificationRoutes from './routes/notifications.js';
+import reportRoutes from './routes/reports.js';
 import { checkSessionActivity } from './middleware/auth.js';
 
 dotenv.config();
@@ -87,8 +92,21 @@ const authLimiter = rateLimit({
 app.use('/api/', limiter);
 app.use('/api/auth', authLimiter);
 
-// Apply session activity check to all authenticated routes
-app.use('/api', checkSessionActivity);
+// API Routes - always register them, they'll handle DB errors internally
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/vendors', vendorRoutes);
+app.use('/api/assessments', assessmentRoutes);
+app.use('/api/questions', questionRoutes);
+app.use('/api/invitations', invitationRoutes);
+app.use('/api/evidence', evidenceRoutes);
+app.use('/api/audit-logs', auditLogRoutes);
+app.use('/api/remediation', remediationRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/reports', reportRoutes);
+
+// Note: Session activity check is now handled within authenticateToken middleware
+// to avoid interfering with public endpoints and routes that have their own auth logic
 
 // Health check endpoint with API info
 app.get('/health', (req, res) => {
@@ -98,14 +116,6 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString() 
   });
 });
-
-// API Routes - always register them, they'll handle DB errors internally
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/vendors', vendorRoutes);
-app.use('/api/assessments', assessmentRoutes);
-app.use('/api/questions', questionRoutes);
-app.use('/api/invitations', invitationRoutes);
 
 // Root endpoint with API info
 app.get('/', (req, res) => {

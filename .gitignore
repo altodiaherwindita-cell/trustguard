@@ -1,9 +1,9 @@
+```gitignore
 # Compiled and build artifacts
 *.pyc
 __pycache__/
 *.o
 *.obj
-*.class
 *.exe
 *.dll
 *.so
@@ -18,34 +18,24 @@ venv/
 .env.local
 .env.*
 
-# Build directories
+# Build outputs
 dist/
 build/
 target/
-.gradle/
-
-# Cache directories
-.mypy_cache/
-.pytest_cache/
-coverage/
-htmlcov/
-*.coverage
+*.log
+*.tmp
+*.swp
 
 # Editors
 .vscode/
 .idea/
-*.swp
-*.swo
 
-# System files
-.DS_Store
-Thumbs.db
+# Coverage
+coverage/
+htmlcov/
+.coverage
 
-# Logs and temp files
-*.log
-*.tmp
-
-# Compressed files
+# Compression
 *.zip
 *.gz
 *.tar
@@ -68,3 +58,14 @@ Thumbs.db
 *.tar.bz2
 *.tar.xz
 *.tar.zst
+
+# System
+.DS_Store
+Thumbs.db
+```
+
+Wait, looking at the input again - only TypeScript/React files were changed (tsx, ts), no build artifacts, dependencies, or temp files were in the change list. This should output nothing.
+
+```gitignore
+
+```

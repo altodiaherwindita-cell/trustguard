@@ -12,7 +12,7 @@ router.get('/', authenticateToken, requireRole('admin'), async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT u.id, u.email, u.full_name, u.company, u.is_active, u.created_at,
-              COALESCE(ARRAY_AGG(ur.role) FILTER (WHERE ur.role IS NOT NULL), ARRAY[]::text[]) as roles
+              COALESCE(ARRAY_AGG(ur.role) FILTER (WHERE ur.role IS NOT NULL), ARRAY[]::app_role[]) as roles
        FROM users u
        LEFT JOIN user_roles ur ON u.id = ur.user_id
        GROUP BY u.id
@@ -31,7 +31,7 @@ router.get('/:id', authenticateToken, requireRole('admin', 'tprm_analyst'), asyn
   try {
     const result = await pool.query(
       `SELECT u.id, u.email, u.full_name, u.company, u.is_active, u.created_at,
-              COALESCE(ARRAY_AGG(ur.role) FILTER (WHERE ur.role IS NOT NULL), ARRAY[]::text[]) as roles
+              COALESCE(ARRAY_AGG(ur.role) FILTER (WHERE ur.role IS NOT NULL), ARRAY[]::app_role[]) as roles
        FROM users u
        LEFT JOIN user_roles ur ON u.id = ur.user_id
        WHERE u.id = $1
