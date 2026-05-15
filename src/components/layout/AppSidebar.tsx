@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   LayoutDashboard, Building2, ClipboardList, Bot, Settings, Shield, FileText,
-  ChevronLeft, ChevronRight, LogOut,
+  ChevronLeft, ChevronRight, LogOut, Users, Activity, FolderOpen,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -43,6 +43,9 @@ export function AppSidebar() {
     { name: 'Vendors', href: '/vendors', icon: Building2, show: isTPRM },
     { name: 'Assessments', href: '/assessments', icon: ClipboardList, show: isTPRM },
     { name: 'Questionnaires', href: '/questionnaires', icon: FileText, show: isTPRM },
+    { name: 'Evidence', href: '/evidence', icon: FolderOpen, show: true },
+    { name: 'Audit Logs', href: '/audit-logs', icon: Activity, show: true },
+    { name: 'Users', href: '/users', icon: Users, show: isAdmin },
     { name: 'AI Assistant', href: '/ai-assistant', icon: Bot, show: isTPRM },
     { name: 'Settings', href: '/settings', icon: Settings, show: true },
   ].filter(n => n.show);

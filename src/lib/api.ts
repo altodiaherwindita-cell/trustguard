@@ -274,6 +274,17 @@ export const usersApi = {
     return result;
   },
 
+  async create(user: { email: string; password: string; full_name?: string; company?: string; roles?: string[] }): Promise<ApiResponse<UserProfile>> {
+    const result = await request<{ user: UserProfile }>('/api/users', {
+      method: 'POST',
+      body: JSON.stringify(user),
+    });
+    if (result.data) {
+      return { data: result.data.user };
+    }
+    return result;
+  },
+
   async updateRole(userId: string, role: string): Promise<ApiResponse<void>> {
     return request<void>(`/api/users/${userId}/role`, {
       method: 'PATCH',
