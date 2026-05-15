@@ -116,7 +116,7 @@ export default function AuditLogsPage() {
         return <Badge className="bg-purple-500">Verify</Badge>;
       case 'LOGIN':
       case 'LOGOUT':
-        return <Badge className="bg-orange-500'>Auth</Badge>;
+        return <Badge className="bg-orange-500">Auth</Badge>;
       default:
         return <Badge>{action}</Badge>;
     }
