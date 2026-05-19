@@ -1,11 +1,126 @@
 import { Router } from 'express';
+import bcrypt from 'bcrypt';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { pool } from '../index.js';
 
 const router = Router();
 
-// Get current user profile (already covered in auth routes)
-// This is for admin to manage users
+// Password policy validation
+function validatePasswordPolicy(password) {
+  const errors = [];
+  
+  // Minimum 8 characters
+  if (password.length < 8) {
+    errors.push('Password must be at least 8 characters long');
+  }
+  
+  // Must contain lowercase letter
+  if (!/[a-z]/.test(password)) {
+    errors.push('Password must contain at least one lowercase letter');
+  }
+  
+  // Must contain uppercase letter
+  if (!/[A-Z]/.test(password)) {
+    errors.push('Password must contain at least one uppercase letter');
+  }
+  
+  // Must contain a number
+  if (!/[0-9]/.test(password)) {
+    errors.push('Password must contain at least one number');
+  }
+  
+  // Must contain a special character
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+    errors.push('Password must contain at least one special character');
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+}
+
+// Get password strength score (0-4)
+function getPasswordStrength(password) {
+  let score = 0;
+  
+  if (password.length >= 8) score++;
+  if (password.length >= 12) score++;
+  if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
+  if (/[0-9]/.test(password)) score++;
+  if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) score++;
+  
+  return Math.min(score, 4);
+}
+
+// Create new user (admin only)
+router.post('/', authenticateToken, requireRole('admin'), async (req, res) => {
+  try {
+    const { email, password, full_name, company, roles } = req.body;
+    
+    // Validate required fields
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+    
+    // Validate password policy
+    const passwordValidation = validatePasswordPolicy(password);
+    if (!passwordValidation.isValid) {
+      return res.status(400).json({ 
+        error: 'Password does not meet policy requirements',
+        details: passwordValidation.errors
+      });
+    }
+    
+    // Check if user already exists
+    const existingUser = await pool.query(
+      'SELECT id FROM users WHERE email = $1',
+      [email]
+    );
+    
+    if (existingUser.rows.length > 0) {
+      return res.status(400).json({ error: 'User with this email already exists' });
+    }
+    
+    // Hash password
+    const passwordHash = await bcrypt.hash(password, 12);
+    
+    // Create user
+    const result = await pool.query(
+      `INSERT INTO users (email, password_hash, full_name, company, must_change_password)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, email, full_name, company, is_active, created_at`,
+      [email, passwordHash, full_name || null, company || null, false]
+    );
+    
+    const newUser = result.rows[0];
+    
+    // Assign roles (default to vendor if not specified)
+    const userRoles = roles && roles.length > 0 ? roles : ['vendor'];
+    
+    for (const role of userRoles) {
+      if (!['admin', 'tprm_analyst', 'vendor'].includes(role)) {
+        await pool.query('DELETE FROM users WHERE id = $1', [newUser.id]);
+        return res.status(400).json({ error: `Invalid role: ${role}` });
+      }
+      
+      await pool.query(
+        'INSERT INTO user_roles (user_id, role) VALUES ($1, $2)',
+        [newUser.id, role]
+      );
+    }
+    
+    res.status(201).json({ 
+      user: {
+        ...newUser,
+        roles: userRoles
+      }
+    });
+  } catch (error) {
+    console.error('Create user error:', error);
+    res.status(500).json({ error: 'Failed to create user' });
+  }
+});
 
 // Get all users (admin only)
 router.get('/', authenticateToken, requireRole('admin'), async (req, res) => {

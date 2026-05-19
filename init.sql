@@ -15,6 +15,7 @@ CREATE TABLE users (
   full_name TEXT,
   company TEXT,
   is_active BOOLEAN NOT NULL DEFAULT true,
+  must_change_password BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -140,8 +141,9 @@ INSERT INTO questions (id, category, question, type, options, weight, risk_impac
 
 -- Create default admin user (password: ChangeMe@889 - CHANGE IN PRODUCTION!)
 -- Password hash is for 'ChangeMe@889' using bcrypt
-INSERT INTO users (email, password_hash, full_name, company) VALUES
-('admin@trustguard.ai', '$2b$12$HHhixK3A0Pj7MmJI3IdHqeQ44eBuknuDaUrhAp2YxNP5Hg5yjc.gi', 'Admin User', 'TrustGuard')
+-- must_change_password is set to true to force password change on first login
+INSERT INTO users (email, password_hash, full_name, company, must_change_password) VALUES
+('admin@trustguard.ai', '$2b$12$HHhixK3A0Pj7MmJI3IdHqeQ44eBuknuDaUrhAp2YxNP5Hg5yjc.gi', 'Admin User', 'TrustGuard', true)
 ON CONFLICT (email) DO NOTHING;
 
 -- Assign admin role to the default admin user

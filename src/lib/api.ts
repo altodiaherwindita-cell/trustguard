@@ -109,6 +109,13 @@ export const authApi = {
     return request<{ user: User }>('/api/auth/me');
   },
 
+  async changePassword(currentPassword: string, newPassword: string): Promise<ApiResponse<{ message: string }>> {
+    return request<{ message: string }>('/api/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+  },
+
   getToken(): string | null {
     return localStorage.getItem('auth_token');
   },
@@ -282,7 +289,10 @@ export const usersApi = {
     if (result.data) {
       return { data: result.data.user };
     }
-    return result;
+    return { 
+      error: typeof result.error === 'string' ? result.error : 'Failed to create user',
+      data: undefined 
+    };
   },
 
   async updateRole(userId: string, role: string): Promise<ApiResponse<void>> {

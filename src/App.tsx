@@ -19,6 +19,7 @@ import NotFound from "./pages/NotFound";
 import UserManagementPage from "@/pages/UserManagementPage";
 import AuditLogsPage from "@/pages/AuditLogsPage";
 import EvidenceManagementPage from "@/pages/EvidenceManagementPage";
+import ChangePasswordPage from "@/pages/ChangePasswordPage";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/auth" element={<AuthPage />} />
+            <Route path="/change-password" element={<ChangePasswordPage />} />
             <Route path="/invite/:token" element={<InvitePage />} />
             <Route path="/" element={<Protected><Dashboard /></Protected>} />
             <Route path="/vendors" element={<Protected role="tprm"><VendorsPage /></Protected>} />

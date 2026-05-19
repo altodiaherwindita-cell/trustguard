@@ -9,6 +9,7 @@ interface User {
   fullName?: string;
   company?: string;
   roles: Role[];
+  mustChangePassword?: boolean;
 }
 
 interface AuthCtx {
@@ -67,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             fullName: apiUser.fullName,
             company: apiUser.company,
             roles: apiUser.roles as Role[],
+            mustChangePassword: (apiUser as any).mustChangePassword,
           });
           // Update stored user to match API response
           localStorage.setItem('auth_user', JSON.stringify(apiUser));
@@ -83,6 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             fullName: storedUser.fullName,
             company: storedUser.company,
             roles: storedUser.roles as Role[],
+            mustChangePassword: (storedUser as any).mustChangePassword,
           });
         } else {
           authApi.clearStorage();
@@ -106,6 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           fullName: storedUser.fullName,
           company: storedUser.company,
           roles: storedUser.roles as Role[],
+          mustChangePassword: (storedUser as any).mustChangePassword,
         });
       }
     };
