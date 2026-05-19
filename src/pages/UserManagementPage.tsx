@@ -30,9 +30,94 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Switch } from '@/components/ui/switch';
-import { Users, Plus, Edit, Trash2, Shield, Mail, Building, Search, Loader2 } from 'lucide-react';
+import { Users, Plus, Edit, Trash2, Shield, Mail, Building, Search, Loader2, Check, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
+
+// Password requirements component with strength indicator
+function PasswordRequirements({ password }: { password: string }) {
+  const requirements = [
+    { label: 'At least 8 characters', met: password.length >= 8 },
+    { label: 'One lowercase letter', met: /[a-z]/.test(password) },
+    { label: 'One uppercase letter', met: /[A-Z]/.test(password) },
+    { label: 'One number', met: /[0-9]/.test(password) },
+    { label: 'One special character', met: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password) },
+  ];
+
+  const getStrengthScore = () => {
+    let score = 0;
+    if (password.length >= 8) score++;
+    if (password.length >= 12) score++;
+    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
+    if (/[0-9]/.test(password)) score++;
+    if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) score++;
+    return Math.min(score, 4);
+  };
+
+  const strengthScore = getStrengthScore();
+  
+  const getStrengthLabel = () => {
+    switch (strengthScore) {
+      case 0: return 'Enter a password';
+      case 1: return 'Weak';
+      case 2: return 'Fair';
+      case 3: return 'Good';
+      case 4: return 'Strong';
+      default: return '';
+    }
+  };
+
+  const getStrengthColor = () => {
+    switch (strengthScore) {
+      case 1: return 'bg-red-500';
+      case 2: return 'bg-orange-500';
+      case 3: return 'bg-yellow-500';
+      case 4: return 'bg-green-500';
+      default: return 'bg-gray-200';
+    }
+  };
+
+  return (
+    <div className="space-y-2 mt-2">
+      {password && (
+        <>
+          <div className="flex items-center justify-between text-xs">
+            <span>Password Strength:</span>
+            <span className={`font-medium ${
+              strengthScore <= 1 ? 'text-red-500' :
+              strengthScore === 2 ? 'text-orange-500' :
+              strengthScore === 3 ? 'text-yellow-500' :
+              'text-green-500'
+            }`}>
+              {getStrengthLabel()}
+            </span>
+          </div>
+          <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+            <div 
+              className={`h-full transition-all duration-300 ${getStrengthColor()}`}
+              style={{ width: `${(strengthScore / 4) * 100}%` }}
+            />
+          </div>
+        </>
+      )}
+      <div className="space-y-1 p-3 bg-muted rounded-lg">
+        <p className="text-xs font-medium mb-2">Password Requirements:</p>
+        {requirements.map((req, idx) => (
+          <div key={idx} className="flex items-center gap-2 text-xs">
+            {req.met ? (
+              <Check className="w-3 h-3 text-green-500" />
+            ) : (
+              <X className="w-3 h-3 text-muted-foreground" />
+            )}
+            <span className={req.met ? 'text-green-600' : 'text-muted-foreground'}>
+              {req.label}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function UserManagementPage() {
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -87,6 +172,33 @@ export default function UserManagementPage() {
   };
 
   const handleAddUser = async () => {
+    // Validate password policy client-side first
+    const passwordErrors: string[] = [];
+    if (newUser.password.length < 8) {
+      passwordErrors.push('At least 8 characters long');
+    }
+    if (!/[a-z]/.test(newUser.password)) {
+      passwordErrors.push('One lowercase letter');
+    }
+    if (!/[A-Z]/.test(newUser.password)) {
+      passwordErrors.push('One uppercase letter');
+    }
+    if (!/[0-9]/.test(newUser.password)) {
+      passwordErrors.push('One number');
+    }
+    if (!/[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?]/.test(newUser.password)) {
+      passwordErrors.push('One special character');
+    }
+
+    if (passwordErrors.length > 0) {
+      toast({
+        title: 'Password Requirements Not Met',
+        description: 'Password must have:\\n• ' + passwordErrors.join('\\n• '),
+        variant: 'destructive',
+      });
+      return;
+    }
+
     // Validate form
     if (!newUser.email || !newUser.password) {
       toast({
@@ -406,6 +518,7 @@ export default function UserManagementPage() {
                 value={newUser.password}
                 onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
               />
+              <PasswordRequirements password={newUser.password} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="role">Role</Label>
