@@ -186,7 +186,7 @@ export default function UserManagementPage() {
     if (!/[0-9]/.test(newUser.password)) {
       passwordErrors.push('One number');
     }
-    if (!/[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?]/.test(newUser.password)) {
+    if (!/[!@#$%^&*()_+\-=\[\]{};':\"\\|,.<>\/?]/.test(newUser.password)) {
       passwordErrors.push('One special character');
     }
 
