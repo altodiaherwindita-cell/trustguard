@@ -44,7 +44,7 @@ export function AppSidebar() {
     { name: 'Assessments', href: '/assessments', icon: ClipboardList, show: isTPRM },
     { name: 'Questionnaires', href: '/questionnaires', icon: FileText, show: isTPRM },
     { name: 'Evidence', href: '/evidence', icon: FolderOpen, show: true },
-    { name: 'Audit Logs', href: '/audit-logs', icon: Activity, show: true },
+    { name: 'Audit Logs', href: '/audit-logs', icon: Activity, show: isAdmin },
     { name: 'Users', href: '/users', icon: Users, show: isAdmin },
     { name: 'AI Assistant', href: '/ai-assistant', icon: Bot, show: isTPRM },
     { name: 'Settings', href: '/settings', icon: Settings, show: true },

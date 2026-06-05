@@ -221,8 +221,7 @@ router.get('/stats', authenticateToken, requireRole('admin'), async (req, res) =
       SELECT 
         COUNT(*) as total_actions,
         COUNT(DISTINCT user_id) as unique_users,
-        COUNT(DISTINCT resource_type) as resource_types,
-        MODE() WITHIN GROUP (ORDER BY action) as most_common_action
+        COUNT(DISTINCT resource_type) as resource_types
       FROM audit_logs
       WHERE created_at >= NOW() - INTERVAL '${daysInt} days'
     `);
@@ -244,8 +243,16 @@ router.get('/stats', authenticateToken, requireRole('admin'), async (req, res) =
       ORDER BY count DESC
     `);
 
+    const statsRow = stats.rows[0];
+    const totalActions = parseInt(statsRow.total_actions) || 0;
+    const uniqueUsers = parseInt(statsRow.unique_users) || 0;
+    const avgActionsPerUser = uniqueUsers > 0 ? totalActions / uniqueUsers : 0;
+
     res.json({
-      summary: stats.rows[0],
+      totalActions,
+      activeUsers: uniqueUsers,
+      resourcesAccessed: parseInt(statsRow.resource_types) || 0,
+      avgActionsPerUser,
       topActions: actionsBreakdown.rows,
       resourcesBreakdown: resourcesBreakdown.rows
     });

@@ -50,7 +50,7 @@ export default function AuditLogsPage() {
 
   useEffect(() => {
     loadLogs();
-    if (userRoles.includes('admin') || userRoles.includes('tprm_analyst')) {
+    if (userRoles.includes('admin')) {
       loadStats();
     }
   }, [filters]);
@@ -136,7 +136,6 @@ export default function AuditLogsPage() {
   };
 
   const isAdmin = userRoles.includes('admin');
-  const isTprm = userRoles.includes('tprm_analyst');
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -145,7 +144,7 @@ export default function AuditLogsPage() {
           <h1 className="text-3xl font-bold">Audit Logs</h1>
           <p className="text-muted-foreground">Track all system activities and changes</p>
         </div>
-        {(isAdmin || isTprm) && (
+        {isAdmin && (
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => handleExport('csv')}>
               <Download className="mr-2 h-4 w-4" />
@@ -160,7 +159,7 @@ export default function AuditLogsPage() {
       </div>
 
       {/* Stats */}
-      {(isAdmin || isTprm) && stats && (
+      {isAdmin && stats && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="pb-2">
