@@ -16,6 +16,10 @@ import { SettingsPage } from "@/pages/SettingsPage";
 import AuthPage from "@/pages/AuthPage";
 import InvitePage from "@/pages/InvitePage";
 import NotFound from "./pages/NotFound";
+import UserManagementPage from "@/pages/UserManagementPage";
+import AuditLogsPage from "@/pages/AuditLogsPage";
+import EvidenceManagementPage from "@/pages/EvidenceManagementPage";
+import ChangePasswordPage from "@/pages/ChangePasswordPage";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +38,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/auth" element={<AuthPage />} />
+            <Route path="/change-password" element={<ChangePasswordPage />} />
             <Route path="/invite/:token" element={<InvitePage />} />
             <Route path="/" element={<Protected><Dashboard /></Protected>} />
             <Route path="/vendors" element={<Protected role="tprm"><VendorsPage /></Protected>} />
@@ -41,6 +46,9 @@ const App = () => (
             <Route path="/questionnaire/:assessmentId" element={<Protected><QuestionnairePage /></Protected>} />
             <Route path="/questionnaires" element={<Protected role="tprm"><QuestionnaireManagementPage /></Protected>} />
             <Route path="/ai-assistant" element={<Protected role="tprm"><AIAssistantPage /></Protected>} />
+            <Route path="/users" element={<Protected role="admin"><UserManagementPage /></Protected>} />
+            <Route path="/audit-logs" element={<Protected role="admin"><AuditLogsPage /></Protected>} />
+            <Route path="/evidence" element={<Protected><EvidenceManagementPage /></Protected>} />
             <Route path="/settings" element={<Protected><SettingsPage /></Protected>} />
             <Route path="*" element={<NotFound />} />
           </Routes>

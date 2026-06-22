@@ -9,6 +9,7 @@ interface User {
   fullName?: string;
   company?: string;
   roles: Role[];
+  mustChangePassword?: boolean;
 }
 
 interface AuthCtx {
@@ -28,7 +29,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -41,7 +41,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!token) {
           if (mounted) {
             setLoading(false);
-            setInitialized(true);
           }
           return;
         }
@@ -53,21 +52,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (result.error) {
           console.error('Auth error:', result.error);
-          // Don't clear storage immediately - let the stored user be used as fallback
-          const storedUser = authApi.getStoredUser();
-          if (storedUser) {
-            setUser({
-              id: storedUser.id,
-              email: storedUser.email,
-              fullName: storedUser.fullName,
-              company: storedUser.company,
-              roles: storedUser.roles as Role[],
-            });
-          } else {
-            authApi.clearStorage();
+          // Clear storage on auth error (including session expiration)
+          authApi.clearStorage();
+          if (mounted) {
+            setLoading(false);
           }
-          setLoading(false);
-          setInitialized(true);
           return;
         }
 
@@ -79,12 +68,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             fullName: apiUser.fullName,
             company: apiUser.company,
             roles: apiUser.roles as Role[],
+            mustChangePassword: (apiUser as any).mustChangePassword,
           });
           // Update stored user to match API response
           localStorage.setItem('auth_user', JSON.stringify(apiUser));
         }
         setLoading(false);
-        setInitialized(true);
       } catch (err) {
         console.error('Auth initialization error:', err);
         // Fallback to stored user on error
@@ -96,6 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             fullName: storedUser.fullName,
             company: storedUser.company,
             roles: storedUser.roles as Role[],
+            mustChangePassword: (storedUser as any).mustChangePassword,
           });
         } else {
           authApi.clearStorage();
@@ -103,7 +93,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (mounted) {
           setError(err instanceof Error ? err.message : 'Unknown error');
           setLoading(false);
-          setInitialized(true);
         }
       }
     };
@@ -120,15 +109,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           fullName: storedUser.fullName,
           company: storedUser.company,
           roles: storedUser.roles as Role[],
+          mustChangePassword: (storedUser as any).mustChangePassword,
         });
       }
     };
 
+    // Listen for session expiration events
+    const handleSessionExpired = () => {
+      console.log('Session expired, clearing user state');
+      if (mounted) {
+        setUser(null);
+        authApi.clearStorage();
+      }
+    };
+
     window.addEventListener('auth-user-changed', handleAuthUserChanged);
+    window.addEventListener('auth-session-expired', handleSessionExpired);
 
     return () => {
       mounted = false;
       window.removeEventListener('auth-user-changed', handleAuthUserChanged);
+      window.removeEventListener('auth-session-expired', handleSessionExpired);
     };
   }, []);
 
