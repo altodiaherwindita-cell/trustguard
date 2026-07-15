@@ -20,7 +20,6 @@ server/test/
 # Generated/Config files
 server/babel.config.js
 server/jest.config.js
-server/services/scheduler.js
 
 # IDE/Editor
 .vscode/
