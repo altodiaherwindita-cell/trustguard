@@ -27,7 +27,14 @@ import { format } from 'date-fns';
 export default function AuditLogsPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<{
+    totalActions: number;
+    activeUsers: number;
+    resourcesAccessed: number;
+    avgActionsPerUser: number;
+    topActions?: Array<{ action: string; count: number }>;
+    resourcesBreakdown?: Array<{ resource_type: string; count: number }>;
+  } | null>(null);
   const [userRoles, setUserRoles] = useState<string[]>([]);
   const [filters, setFilters] = useState<AuditLogFilters>({
     limit: 50,

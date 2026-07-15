@@ -111,8 +111,8 @@ export function QuestionnaireManagementPage() {
       toast.success(editingQuestion ? 'Question updated' : 'Question created');
       setIsDialogOpen(false);
       loadQuestions();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to save question');
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'Failed to save question');
     }
     setSaving(false);
   };
@@ -127,8 +127,8 @@ export function QuestionnaireManagementPage() {
 
       toast.success('Question deleted');
       loadQuestions();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to delete question');
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete question');
     }
   };
 

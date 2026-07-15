@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { evidenceApi, type EvidenceDocument } from '@/lib/api';
+import { evidenceApi, type EvidenceDocument, assessmentsApi } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -30,14 +30,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
-import { Upload, Download, FileText, CheckCircle, XCircle, Trash2, Eye } from 'lucide-react';
+import { Upload, Download, FileText, CheckCircle, XCircle, Trash2, Eye, Search } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface EvidenceManagementPageProps {
   assessmentId?: string;
 }
 
-export default function EvidenceManagementPage({ assessmentId }: EvidenceManagementPageProps) {
+export default function EvidenceManagementPage({ assessmentId: initialAssessmentId }: EvidenceManagementPageProps) {
   const [evidence, setEvidence] = useState<EvidenceDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
@@ -48,6 +48,9 @@ export default function EvidenceManagementPage({ assessmentId }: EvidenceManagem
   const [verificationStatus, setVerificationStatus] = useState<'validated' | 'rejected'>('validated');
   const [verificationNotes, setVerificationNotes] = useState('');
   const [userRoles, setUserRoles] = useState<string[]>([]);
+  const [assessmentId, setAssessmentId] = useState<string | undefined>(initialAssessmentId);
+  const [assessments, setAssessments] = useState<Array<{ id: string; vendor_name: string; status: string }>>([]);
+  const [assessmentsLoading, setAssessmentsLoading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -63,22 +66,68 @@ export default function EvidenceManagementPage({ assessmentId }: EvidenceManagem
   }, []);
 
   useEffect(() => {
-    if (assessmentId) {
-      loadEvidence();
-    }
+    loadEvidence();
   }, [assessmentId]);
 
+  useEffect(() => {
+    if (!initialAssessmentId) {
+      loadAssessments();
+    }
+  }, [initialAssessmentId]);
+
+  const loadAssessments = async () => {
+    setAssessmentsLoading(true);
+    try {
+      const result = await assessmentsApi.getAll();
+      if (result.data) {
+        setAssessments(result.data.map(a => ({
+          id: a.id,
+          vendor_name: a.vendor?.name || a.vendor_name || 'Unknown Vendor',
+          status: a.status,
+        })));
+      }
+    } catch (error) {
+      console.error('Failed to load assessments:', error);
+    }
+    setAssessmentsLoading(false);
+  };
+
   const loadEvidence = async () => {
-    if (!assessmentId) return;
-    
     setLoading(true);
-    const result = await evidenceApi.getByAssessment(assessmentId);
-    if (result.data) {
-      setEvidence(result.data);
-    } else {
+
+    let endpoint = '/api/evidence';
+    if (assessmentId) {
+      endpoint = `/api/evidence/${assessmentId}`;
+    }
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${endpoint}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.evidence) {
+          setEvidence(data.evidence);
+        } else if (Array.isArray(data)) {
+          setEvidence(data);
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        toast({
+          title: 'Error',
+          description: errorData.error || 'Failed to load evidence',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Load evidence error:', error);
       toast({
         title: 'Error',
-        description: result.error || 'Failed to load evidence',
+        description: 'Failed to load evidence',
         variant: 'destructive',
       });
     }
@@ -89,11 +138,11 @@ export default function EvidenceManagementPage({ assessmentId }: EvidenceManagem
     const file = e.target.files?.[0];
     if (file) {
       // Validate file type
-      const allowedTypes = ['application/pdf', 'application/msword', 
+      const allowedTypes = ['application/pdf', 'application/msword',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'image/png', 'image/jpeg'];
-      
+
       if (!allowedTypes.includes(file.type)) {
         toast({
           title: 'Invalid file type',
@@ -118,7 +167,14 @@ export default function EvidenceManagementPage({ assessmentId }: EvidenceManagem
   };
 
   const handleUpload = async () => {
-    if (!uploadFile || !assessmentId) return;
+    if (!uploadFile || !assessmentId) {
+      toast({
+        title: 'Error',
+        description: 'Please select an assessment and file',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     const result = await evidenceApi.upload(assessmentId, uploadFile, undefined, uploadDescription);
     if (result.data) {
@@ -213,36 +269,85 @@ export default function EvidenceManagementPage({ assessmentId }: EvidenceManagem
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold">Evidence Management</h1>
           <p className="text-muted-foreground">Manage supporting documents for assessments</p>
         </div>
-        <Button onClick={() => setUploadDialogOpen(true)}>
-          <Upload className="mr-2 h-4 w-4" />
-          Upload Evidence
-        </Button>
+        {assessmentId && (
+          <Button onClick={() => setUploadDialogOpen(true)}>
+            <Upload className="mr-2 h-4 w-4" />
+            Upload Evidence
+          </Button>
+        )}
       </div>
+
+      {!assessmentId && assessments.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Search className="w-5 h-5 text-primary" />
+              Select Assessment
+            </CardTitle>
+            <CardDescription>Choose an assessment to view or manage its evidence documents</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {assessments.map((a) => (
+                <Button
+                  key={a.id}
+                  variant={assessmentId === a.id ? 'default' : 'outline'}
+                  className="w-full justify-start gap-3 h-auto py-4"
+                  onClick={() => setAssessmentId(a.id)}
+                >
+                  <div className="flex-1 text-left">
+                    <p className="font-medium">{a.vendor_name}</p>
+                    <p className="text-sm text-muted-foreground">Status: {a.status}</p>
+                    {assessmentId === a.id && (
+                      <Badge className="mt-1 bg-primary">Selected</Badge>
+                    )}
+                  </div>
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
-          <CardTitle>Evidence Documents</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="w-5 h-5 text-primary" />
+            Evidence Documents
+          </CardTitle>
           <CardDescription>
-            {evidence.length} document{evidence.length !== 1 ? 's' : ''} found
+            {assessmentId
+              ? `${evidence.length} document${evidence.length !== 1 ? 's' : ''} found`
+              : 'Select an assessment to view evidence documents'}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {loading ? (
-            <div className="text-center py-8">Loading...</div>
+          {loading || assessmentsLoading ? (
+            <div className="text-center py-8">
+              <div className="inline-flex items-center gap-2 text-muted-foreground">
+                <svg className="animate-spin h-6 w-6" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                Loading...
+              </div>
+            </div>
           ) : evidence.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              No evidence documents uploaded yet
+              <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>{assessmentId ? 'No evidence documents uploaded yet' : 'Select an assessment to view evidence'}</p>
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Document</TableHead>
+                  <TableHead>Assessment</TableHead>
                   <TableHead>Uploaded By</TableHead>
                   <TableHead>Upload Date</TableHead>
                   <TableHead>Status</TableHead>
@@ -258,6 +363,13 @@ export default function EvidenceManagementPage({ assessmentId }: EvidenceManagem
                         <FileText className="h-4 w-4" />
                         <span>{doc.file_name}</span>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {doc.assessment_id ? (
+                        <span className="text-sm text-muted-foreground">{doc.assessment_id.substring(0, 8)}...</span>
+                      ) : (
+                        '-'
+                      )}
                     </TableCell>
                     <TableCell>{doc.uploaded_by_name || doc.uploaded_by_email}</TableCell>
                     <TableCell>{format(new Date(doc.created_at), 'MMM dd, yyyy')}</TableCell>

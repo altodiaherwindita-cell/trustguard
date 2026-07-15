@@ -324,11 +324,14 @@ export interface Question {
 
 export const questionsApi = {
   async getAll(): Promise<ApiResponse<Question[]>> {
-    const result = await request<Question[]>('/api/questions');
-    if (result.data) {
+    const result = await request<{ data: Question[] }>('/api/questions');
+    if (result.data?.data) {
+      return { data: result.data.data };
+    }
+    // Handle case where result.data is already an array or return empty array on error
+    if (Array.isArray(result.data)) {
       return { data: result.data };
     }
-    // Handle case where result.data exists but is already an array, or return empty array on error
     if (result.error) {
       return { data: [] };
     }
@@ -423,7 +426,15 @@ export const evidenceApi = {
   },
 
   async getByAssessment(assessmentId: string): Promise<ApiResponse<EvidenceDocument[]>> {
-    return request<EvidenceDocument[]>(`/api/evidence/${assessmentId}`);
+    const result = await request<{ evidence: EvidenceDocument[] }>(`/api/evidence/${assessmentId}`);
+    if (result.data?.evidence) {
+      return { data: result.data.evidence };
+    }
+    // Handle case where result.data exists but evidence is missing, or return empty array on error
+    if (result.error) {
+      return { data: [] };
+    }
+    return result;
   },
 
   async download(id: string): Promise<Blob> {
