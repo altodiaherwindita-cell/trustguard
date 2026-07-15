@@ -324,11 +324,11 @@ export interface Question {
 
 export const questionsApi = {
   async getAll(): Promise<ApiResponse<Question[]>> {
-    const result = await request<{ data: Question[] }>('/api/questions');
-    if (result.data?.data) {
-      return { data: result.data.data };
+    const result = await request<Question[]>('/api/questions');
+    if (result.data) {
+      return { data: result.data };
     }
-    // Handle case where result.data exists but data array is missing, or return empty array on error
+    // Handle case where result.data exists but is already an array, or return empty array on error
     if (result.error) {
       return { data: [] };
     }
@@ -524,7 +524,7 @@ export const auditLogApi = {
     return await response.blob();
   },
 
-  async getStats(days?: number): Promise<ApiResponse<any>> {
+  async getStats(days?: number): Promise<ApiResponse<Record<string, unknown>>> {
     const params = days ? `?days=${days}` : '';
     return request(`/api/audit-logs/stats${params}`);
   },
@@ -623,6 +623,126 @@ export const remediationApi = {
   },
 };
 
+// Review History API
+export interface ReviewHistoryItem {
+  id: string;
+  assessment_id: string;
+  reviewer_id: string;
+  action: string;
+  comments?: string;
+  is_internal: boolean;
+  risk_score_before?: number;
+  risk_score_after?: number;
+  risk_level_before?: string;
+  risk_level_after?: string;
+  reviewer_name?: string;
+  reviewer_email?: string;
+  created_at: string;
+}
+
+export interface AssessmentReviewResponse {
+  assessment: {
+    id: string;
+    vendor_id: string;
+    status: string;
+    risk_score?: number;
+    risk_level?: string;
+    overall_score?: number;
+    ai_summary?: string;
+    strengths?: string;
+    weaknesses?: string;
+    recommendations?: string;
+    category_scores?: Record<string, number>;
+    reviewed_at?: string;
+    current_reviewer_id?: string;
+    created_at: string;
+    updated_at: string;
+  };
+  message: string;
+}
+
+export const reviewApi = {
+  async review(assessmentId: string, data: {
+    action: 'approve' | 'reject' | 'request_revision';
+    riskScore?: number;
+    riskLevel?: string;
+    overallScore?: number;
+    aiSummary?: string;
+    strengths?: string[];
+    weaknesses?: string[];
+    recommendations?: string[];
+    categoryScores?: Record<string, number>;
+    comments?: string;
+  }): Promise<ApiResponse<AssessmentReviewResponse>> {
+    return request(`/api/assessments/${assessmentId}/review`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async getHistory(assessmentId: string): Promise<ApiResponse<{ reviews: ReviewHistoryItem[] }>> {
+    return request(`/api/assessments/${assessmentId}/reviews`);
+  },
+
+  async addComment(assessmentId: string, comment: string, isInternal = true): Promise<ApiResponse<{ comment: ReviewHistoryItem; message: string }>> {
+    return request(`/api/assessments/${assessmentId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ comment, isInternal }),
+    });
+  },
+};
+
+// Reports API
+export const reportsApi = {
+  async downloadPdf(assessmentId: string): Promise<Blob> {
+    const token = localStorage.getItem('auth_token');
+    const response = await fetch(`${API_BASE_URL}/api/reports/assessment/${assessmentId}/pdf`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to download PDF');
+    }
+
+    return await response.blob();
+  },
+
+  async downloadExcel(assessmentId: string): Promise<Blob> {
+    const token = localStorage.getItem('auth_token');
+    const response = await fetch(`${API_BASE_URL}/api/reports/assessment/${assessmentId}/excel`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to download Excel');
+    }
+
+    return await response.blob();
+  },
+
+  async downloadVendorSummaryExcel(): Promise<Blob> {
+    const token = localStorage.getItem('auth_token');
+    const response = await fetch(`${API_BASE_URL}/api/reports/vendors/summary/excel`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to download vendor summary');
+    }
+
+    return await response.blob();
+  },
+};
+
 // Notifications API
 export interface Notification {
   id: string;
@@ -634,7 +754,7 @@ export interface Notification {
   title: string;
   message: string;
   action_url?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   status: 'pending' | 'sent' | 'read' | 'expired';
   read_at?: string;
   expires_at?: string;

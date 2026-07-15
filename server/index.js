@@ -16,6 +16,7 @@ import remediationRoutes from './routes/remediation.js';
 import notificationRoutes from './routes/notifications.js';
 import reportRoutes from './routes/reports.js';
 import { checkSessionActivity } from './middleware/auth.js';
+import { initializeScheduler } from './services/scheduler.js';
 
 dotenv.config();
 
@@ -27,7 +28,7 @@ let dbReady = false;
 
 // Support both DATABASE_URL and individual connection parameters
 const connectionString = process.env.DATABASE_URL;
-export const pool = new Pool(
+const pool = new Pool(
   connectionString
     ? { connectionString }
     : {
@@ -65,6 +66,13 @@ async function connectWithRetry(maxRetries = 5, delayMs = 2000) {
 }
 
 connectWithRetry();
+
+// Initialize email reminder scheduler after DB connection
+connectWithRetry().then(() => {
+  if (dbReady) {
+    initializeScheduler();
+  }
+});
 
 // Middleware
 app.use(helmet());
@@ -147,3 +155,6 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`TrustGuard AI API server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
+
+// Export for testing
+export { app, pool };

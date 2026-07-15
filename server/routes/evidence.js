@@ -182,7 +182,7 @@ router.get('/:id/download', authenticateToken, async (req, res) => {
     const evidence = result.rows[0];
     
     // Verify permissions
-    const isOwner = v.owner_user_id === req.userId;
+    const isOwner = evidence.owner_user_id === req.userId;
     const hasTPRMRole = req.userRole === 'admin' || req.userRole === 'tprm_analyst';
 
     if (!isOwner && !hasTPRMRole) {

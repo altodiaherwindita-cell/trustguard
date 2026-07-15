@@ -28,6 +28,9 @@ router.get('/assessment/:id/pdf', authenticateToken, async (req, res) => {
 
     // Check permissions
     const vendorResult = await pool.query('SELECT owner_user_id FROM vendors WHERE id = $1', [assessment.vendor_id]);
+    if (vendorResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Vendor not found' });
+    }
     const isOwner = vendorResult.rows[0].owner_user_id === req.userId;
     const hasTPRMRole = req.userRole === 'admin' || req.userRole === 'tprm_analyst';
 
@@ -201,6 +204,9 @@ router.get('/assessment/:id/excel', authenticateToken, async (req, res) => {
 
     // Check permissions
     const vendorResult = await pool.query('SELECT owner_user_id FROM vendors WHERE id = $1', [assessment.vendor_id]);
+    if (vendorResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Vendor not found' });
+    }
     const isOwner = vendorResult.rows[0].owner_user_id === req.userId;
     const hasTPRMRole = req.userRole === 'admin' || req.userRole === 'tprm_analyst';
 

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../index.js';
 import { sendAssessmentInvitation } from '../services/emailService.js';
+import { authenticateToken, requireRole } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -37,7 +38,7 @@ router.get('/:token', async (req, res) => {
 });
 
 // Create invitation and send email
-router.post('/', async (req, res) => {
+router.post('/', authenticateToken, requireRole('admin', 'tprm_analyst'), async (req, res) => {
   try {
     const { vendorId, assessmentId, email, sendEmailNotification = true } = req.body;
 

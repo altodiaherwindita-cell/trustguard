@@ -1,0 +1,337 @@
+/* ==========================================================================
+   TrustGuard AI - Design Token System
+   A distinctive visual language for Third-Party Risk Management
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@layer base {
+  :root {
+    /* ---- Color Primitives ---- */
+    /* Obsidian - Deep authority background */
+    --color-obsidian: 10 15 20;
+    --color-obsidian-rgb: 10, 15, 20;
+
+    /* Slate Scale - UI Layers */
+    --color-slate-950: 2 6 23;
+    --color-slate-900: 15 23 42;
+    --color-slate-800: 30 41 59;
+    --color-slate-700: 51 65 85;
+    --color-slate-600: 71 85 105;
+    --color-slate-500: 100 116 139;
+    --color-slate-400: 148 163 184;
+    --color-slate-300: 203 213 225;
+    --color-slate-200: 226 232 240;
+    --color-slate-100: 241 245 249;
+    --color-slate-50: 248 250 252;
+
+    /* Security Cyan - The Trust Accent */
+    --color-cyan: 0 212 170;
+    --color-cyan-dim: 0 212 170 / 0.15;
+    --color-cyan-glow: 0 212 170 / 0.4;
+    --color-cyan-strong: 0 180 145;
+
+    /* Semantic Risk Colors */
+    --color-risk-critical: 239 68 68;
+    --color-risk-high: 249 115 22;
+    --color-risk-medium: 251 191 36;
+    --color-risk-low: 34 197 94;
+    --color-verdict: 34 197 94;
+
+    /* ---- Semantic Color Aliases (HSL for Tailwind compat) ---- */
+    --background: 220 39% 6%;
+    --foreground: 210 40% 96%;
+
+    --card: 220 27% 9%;
+    --card-foreground: 210 40% 96%;
+    --card-border: 220 20% 16%;
+
+    --popover: 220 27% 9%;
+    --popover-foreground: 210 40% 96%;
+
+    --primary: 170 100% 42%;
+    --primary-foreground: 220 39% 6%;
+    --primary-hover: 170 100% 35%;
+
+    --secondary: 220 20% 14%;
+    --secondary-foreground: 210 40% 90%;
+
+    --muted: 220 20% 14%;
+    --muted-foreground: 215 20% 55%;
+
+    --accent: 170 100% 42%;
+    --accent-foreground: 220 39% 6%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 210 40% 98%;
+
+    --warning: 42 93% 56%;
+    --warning-foreground: 220 39% 6%;
+
+    --success: 142 71% 45%;
+    --success-foreground: 210 40% 98%;
+
+    --border: 220 20% 18%;
+    --input: 220 20% 18%;
+    --ring: 170 100% 42%;
+
+    --radius: 0.75rem;
+    --radius-sm: 0.5rem;
+    --radius-lg: 1rem;
+    --radius-xl: 1.5rem;
+
+    /* ---- Gradients ---- */
+    --gradient-primary: linear-gradient(135deg, hsl(170 100% 42%) 0%, hsl(170 100% 35%) 100%);
+    --gradient-cyan-glow: radial-gradient(ellipse at center, hsl(170 100% 42% / 0.25) 0%, transparent 70%);
+    --gradient-card: linear-gradient(145deg, hsl(220 27% 9%) 0%, hsl(220 27% 7%) 100%);
+    --gradient-hero: linear-gradient(180deg, hsl(220 39% 6%) 0%, hsl(220 39% 4%) 100%);
+    --gradient-risk-critical: linear-gradient(135deg, hsl(0 72% 51%) 0%, hsl(0 84% 40%) 100%);
+    --gradient-risk-high: linear-gradient(135deg, hsl(24 95% 53%) 0%, hsl(15 100% 45%) 100%);
+    --gradient-risk-medium: linear-gradient(135deg, hsl(42 93% 56%) 0%, hsl(38 92% 50%) 100%);
+    --gradient-risk-low: linear-gradient(135deg, hsl(142 71% 45%) 0%, hsl(142 76% 36%) 100%);
+
+    /* ---- Shadows ---- */
+    --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.4);
+    --shadow-cyan: 0 0 20px hsl(170 100% 42% / 0.3), 0 0 40px hsl(170 100% 42% / 0.15);
+    --shadow-cyan-lg: 0 0 40px hsl(170 100% 42% / 0.4), 0 0 80px hsl(170 100% 42% / 0.2);
+
+    /* ---- Animation Tokens ---- */
+    --duration-fast: 150ms;
+    --duration-base: 200ms;
+    --duration-slow: 300ms;
+    --duration-slower: 500ms;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+    /* ---- Layout ---- */
+    --rail-width: 280px;
+    --rail-collapsed: 80px;
+    --header-height: 64px;
+    --content-max: 1400px;
+
+    /* ---- Z-Index Scale ---- */
+    --z-base: 1;
+    --z-dropdown: 100;
+    --z-sticky: 200;
+    --z-overlay: 300;
+    --z-modal: 400;
+    --z-toast: 500;
+    --z-tooltip: 600;
+  }
+
+  /* Light mode (vendor-facing pages) */
+  .light {
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --card-border: 214 32% 91%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 170 100% 35%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 170 100% 35%;
+    --accent-foreground: 210 40% 98%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 170 100% 35%;
+    --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    --shadow-cyan: 0 0 20px hsl(170 100% 35% / 0.25);
+    --gradient-hero: linear-gradient(180deg, hsl(210 40% 98%) 0%, hsl(210 40% 94%) 100%);
+  }
+
+  /* Force dark for main app */
+  html:not(.light) {
+    color-scheme: dark;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-body), system-ui, sans-serif;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Typography Scale */
+  .display-xl {
+    font-family: var(--font-display), system-ui, sans-serif;
+    font-size: clamp(3rem, 5vw, 4.5rem);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+  }
+
+  .display-lg {
+    font-family: var(--font-display), system-ui, sans-serif;
+    font-size: clamp(2rem, 3vw, 3rem);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+
+  .display-md {
+    font-family: var(--font-display), system-ui, sans-serif;
+    font-size: clamp(1.5rem, 2.5vw, 2rem);
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+  }
+
+  .heading-1 { font-size: 1.875rem; font-weight: 700; line-height: 1.2; }
+  .heading-2 { font-size: 1.5rem; font-weight: 600; line-height: 1.3; }
+  .heading-3 { font-size: 1.25rem; font-weight: 600; line-height: 1.35; }
+  .heading-4 { font-size: 1.125rem; font-weight: 600; line-height: 1.4; }
+
+  .body-lg { font-size: 1rem; line-height: 1.7; }
+  .body { font-size: 0.9375rem; line-height: 1.6; }
+  .body-sm { font-size: 0.875rem; line-height: 1.55; }
+  .caption { font-size: 0.8125rem; line-height: 1.5; font-weight: 500; letter-spacing: 0.01em; }
+  .micro { font-size: 0.75rem; line-height: 1.4; font-weight: 500; letter-spacing: 0.02em; text-transform: uppercase; }
+
+  .mono { font-family: var(--font-mono), monospace; }
+  .tabular-nums { font-variant-numeric: tabular-nums; }
+
+  /* Focus visible */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
+  }
+
+  /* Selection */
+  ::selection {
+    @apply bg-primary/30 text-primary-foreground;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { @apply bg-transparent; }
+  ::-webkit-scrollbar-thumb { @apply bg-muted-foreground/30 rounded-full hover:bg-muted-foreground/50; }
+  ::-webkit-scrollbar-corner { @apply bg-transparent; }
+}
+
+@layer utilities {
+  /* Glass morphism */
+  .glass {
+    @apply bg-card/60 backdrop-blur-xl border border-card-border/50;
+  }
+
+  .glass-strong {
+    @apply bg-card/80 backdrop-blur-2xl border;
+    border-color: rgb(var(--card-border) / 0.6);
+  }
+
+  /* Gradient text */
+  .text-gradient-cyan {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-gradient-risk {
+    background: linear-gradient(135deg, hsl(var(--destructive)) 0%, hsl(var(--warning)) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Risk indicator dots */
+  .risk-dot {
+    @apply w-2 h-2 rounded-full;
+  }
+  .risk-dot-critical { @apply risk-dot bg-[rgb(var(--color-risk-critical))] shadow-[0_0_8px_rgb(var(--color-risk-critical))]; }
+  .risk-dot-high { @apply risk-dot bg-[rgb(var(--color-risk-high))] shadow-[0_0_8px_rgb(var(--color-risk-high))]; }
+  .risk-dot-medium { @apply risk-dot bg-[rgb(var(--color-risk-medium))] shadow-[0_0_8px_rgb(var(--color-risk-medium))]; }
+  .risk-dot-low { @apply risk-dot bg-[rgb(var(--color-risk-low))] shadow-[0_0_8px_rgb(var(--color-risk-low))]; }
+  .risk-dot-verdict { @apply risk-dot bg-[rgb(var(--color-verdict))] shadow-[0_0_8px_rgb(var(--color-verdict))]; }
+
+  /* Pulse animation for risk pulse */
+  @keyframes pulse-ring {
+    0% { transform: scale(1); opacity: 0.6; }
+    50% { transform: scale(1.15); opacity: 1; }
+    100% { transform: scale(1); opacity: 0.6; }
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .animate-pulse-ring {
+    animation: pulse-ring 2s ease-in-out infinite;
+  }
+
+  .animate-pulse-dot {
+    animation: pulse-dot 1.5s ease-in-out infinite;
+  }
+
+  /* Stagger entrance */
+  @keyframes stagger-in {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-stagger-in {
+    animation: stagger-in 0.5s var(--ease-out) forwards;
+    opacity: 0;
+  }
+
+  .delay-1 { animation-delay: 50ms; }
+  .delay-2 { animation-delay: 100ms; }
+  .delay-3 { animation-delay: 150ms; }
+  .delay-4 { animation-delay: 200ms; }
+  .delay-5 { animation-delay: 250ms; }
+  .delay-6 { animation-delay: 300ms; }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* Layout helpers */
+  .rail-width { width: var(--rail-width); }
+  .rail-collapsed { width: var(--rail-collapsed); }
+  .content-max { max-width: var(--content-max); }
+
+  /* Text balance */
+  .text-balance { text-wrap: balance; }
+
+  /* Gradient borders */
+  .border-gradient-cyan {
+    border: 1px solid transparent;
+    background: linear-gradient(var(--card), var(--card)) padding-box,
+                var(--gradient-primary) border-box;
+  }
+
+  .border-gradient-risk {
+    border: 1px solid transparent;
+    background: linear-gradient(var(--card), var(--card)) padding-box;
+  }
+}

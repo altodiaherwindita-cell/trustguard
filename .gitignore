@@ -1,1 +1,51 @@
-Nothing should be ignored in this case, as only a markdown file (IMPROVEMENT_PLAN.md) was added, which is a source/config file and not a build artifact, dependency, or temporary file.
+# Dependencies
+node_modules/
+server/node_modules/
+
+# Build outputs
+dist/
+build/
+
+# Coverage
+coverage/
+server/coverage/
+
+# Logs
+*.log
+server/server.log
+
+# Test files
+server/test/
+
+# Generated/Config files
+server/babel.config.js
+server/jest.config.js
+server/services/scheduler.js
+
+# IDE/Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Turbo/Build cache
+.turbo/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Documentation/Summary files (auto-generated)
+BUG_FIXES_SUMMARY.md
+BUILD_CONTINUATION.md
+TEST_FIXES_SUMMARY.md
+CLAUDE.md
