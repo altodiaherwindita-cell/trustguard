@@ -107,10 +107,14 @@ router.post('/login', async (req, res) => {
     const roles = rolesResult.rows.map(r => r.role);
 
     // Generate token
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      throw new Error('JWT_SECRET environment variable must be set');
+    }
     const token = jwt.sign(
       { userId: user.id, email: user.email },
-      process.env.JWT_SECRET || 'default_secret',
-      { expiresIn: '7d' }
+      jwtSecret,
+      { expiresIn: '7d', algorithm: 'HS256' }
     );
 
     res.json({

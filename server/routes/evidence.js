@@ -19,7 +19,9 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + '-' + file.originalname);
+    // Sanitize filename to prevent path traversal - only allow alphanumeric, dots, hyphens, underscores
+    const safeName = path.basename(file.originalname).replace(/[^a-zA-Z0-9.-_]/g, '_');
+    cb(null, uniqueSuffix + '-' + safeName);
   }
 });
 
@@ -45,6 +47,13 @@ const upload = multer({
 // Helper function to calculate file hash
 function calculateFileHash(buffer) {
   return crypto.createHash('sha256').update(buffer).digest('hex');
+}
+
+// Helper function to validate file path is within upload directory (prevents path traversal)
+function isValidFilePath(filePath) {
+  const uploadDir = path.resolve(process.env.UPLOAD_PATH || './uploads');
+  const requestedPath = path.resolve(filePath);
+  return requestedPath.startsWith(uploadDir);
 }
 
 // Upload evidence document
@@ -180,7 +189,7 @@ router.get('/:id/download', authenticateToken, async (req, res) => {
     }
 
     const evidence = result.rows[0];
-    
+
     // Verify permissions
     const isOwner = evidence.owner_user_id === req.userId;
     const hasTPRMRole = req.userRole === 'admin' || req.userRole === 'tprm_analyst';
@@ -191,6 +200,12 @@ router.get('/:id/download', authenticateToken, async (req, res) => {
 
     if (!fs.existsSync(evidence.file_path)) {
       return res.status(404).json({ error: 'File not found' });
+    }
+
+    // Prevent path traversal - ensure file is within upload directory
+    if (!isValidFilePath(evidence.file_path)) {
+      console.warn('Path traversal attempt blocked:', evidence.file_path);
+      return res.status(403).json({ error: 'Access denied' });
     }
 
     // Log download
@@ -253,7 +268,7 @@ router.patch('/:id/verify', authenticateToken, requireRole('admin', 'tprm_analys
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT e.*, a.id as assessment_id, v.owner_user_id 
+      `SELECT e.*, a.id as assessment_id, v.owner_user_id
        FROM evidence_documents e
        JOIN assessments a ON e.assessment_id = a.id
        JOIN vendors v ON a.vendor_id = v.id
@@ -271,6 +286,12 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     const isUploader = evidence.uploaded_by === req.userId;
 
     if (!isOwner && !hasTPRMRole && !isUploader) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Prevent path traversal - ensure file is within upload directory
+    if (!isValidFilePath(evidence.file_path)) {
+      console.warn('Path traversal attempt blocked on delete:', evidence.file_path);
       return res.status(403).json({ error: 'Access denied' });
     }
 

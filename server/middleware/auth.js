@@ -13,7 +13,11 @@ export const authenticateToken = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'default_secret');
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      throw new Error('JWT_SECRET environment variable must be set');
+    }
+    const decoded = jwt.verify(token, jwtSecret, { algorithms: ['HS256'] });
 
     // Check if token has expired due to force relogin (8 hours)
     const tokenAge = Date.now() - decoded.iat * 1000;
