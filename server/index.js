@@ -65,8 +65,6 @@ async function connectWithRetry(maxRetries = 5, delayMs = 2000) {
   return false;
 }
 
-connectWithRetry();
-
 // Initialize email reminder scheduler after DB connection
 connectWithRetry().then(() => {
   if (dbReady) {
@@ -81,9 +79,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Rate limiting
+// E2E runs log in dozens of times from one IP; the production limits would make
+// the suite fail on its own traffic rather than on a defect. test keeps the same
+// middleware shape, just with headroom.
+const isTest = process.env.NODE_ENV === 'test';
+
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: isTest ? 10_000 : 100, // limit each IP to 100 requests per windowMs
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
@@ -91,7 +94,7 @@ const limiter = rateLimit({
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20, // limit auth requests to 20 per windowMs
+  max: isTest ? 10_000 : 20, // limit auth requests to 20 per windowMs
   message: 'Too many authentication attempts, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,

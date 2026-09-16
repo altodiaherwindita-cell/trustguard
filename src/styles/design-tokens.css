@@ -71,6 +71,11 @@
     --success: 142 71% 45%;
     --success-foreground: 210 40% 98%;
 
+    --risk-critical: 0 84% 60%;
+    --risk-high: 25 95% 53%;
+    --risk-medium: 43 96% 56%;
+    --risk-low: 142 71% 45%;
+
     --border: 220 20% 18%;
     --input: 220 20% 18%;
     --ring: 170 100% 42%;

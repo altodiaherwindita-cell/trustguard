@@ -13,7 +13,10 @@ interface User {
   email: string;
   fullName?: string;
   company?: string;
-  roles: string[];
+  roles: ('admin' | 'tprm_analyst' | 'vendor')[];
+  // The login response includes this (auth.js maps must_change_password);
+  // AuthPage reads it to route straight to /change-password.
+  mustChangePassword?: boolean;
 }
 
 interface LoginRequest {
@@ -52,16 +55,18 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     });
 
     clearTimeout(timeoutId);
-    
-    // Handle 401 Unauthorized - clear session and trigger logout
-    if (response.status === 401) {
+
+    const data = await response.json();
+
+    // A 401 only means the session died if we actually sent a token. On an
+    // unauthenticated call (login, invitation lookup) it is a normal rejection
+    // and the server's message is the one the user needs to see.
+    if (response.status === 401 && token) {
       localStorage.removeItem('auth_token');
       localStorage.removeItem('auth_user');
       window.dispatchEvent(new CustomEvent('auth-session-expired'));
       return { error: 'Session expired. Please sign in again.' };
     }
-    
-    const data = await response.json();
 
     if (!response.ok) {
       return { error: data.error || data.message || 'Request failed' };
@@ -145,6 +150,7 @@ export interface Vendor {
   category?: string;
   industry?: string;
   contact_email?: string;
+  owner_user_id?: string;
   status?: string;
   current_risk_score?: number;
   current_risk_level?: 'low' | 'medium' | 'high' | 'critical';
@@ -163,7 +169,7 @@ export const vendorsApi = {
     if (result.error) {
       return { data: [] };
     }
-    return result;
+    return { error: result.error, message: result.message };
   },
 
   async getById(id: string): Promise<ApiResponse<Vendor>> {
@@ -171,7 +177,7 @@ export const vendorsApi = {
     if (result.data) {
       return { data: result.data.vendor };
     }
-    return result;
+    return { error: result.error, message: result.message };
   },
 
   async create(vendor: Omit<Vendor, 'id' | 'created_at' | 'updated_at'>): Promise<ApiResponse<Vendor>> {
@@ -182,18 +188,18 @@ export const vendorsApi = {
     if (result.data) {
       return { data: result.data.vendor };
     }
-    return result;
+    return { error: result.error, message: result.message };
   },
 
   async update(id: string, vendor: Partial<Vendor>): Promise<ApiResponse<Vendor>> {
     const result = await request<{ vendor: Vendor }>(`/api/vendors/${id}`, {
-      method: 'PUT',
+      method: 'PATCH',
       body: JSON.stringify(vendor),
     });
     if (result.data) {
       return { data: result.data.vendor };
     }
-    return result;
+    return { error: result.error, message: result.message };
   },
 
   async delete(id: string): Promise<ApiResponse<void>> {
@@ -212,6 +218,19 @@ export interface Assessment {
   created_at?: string;
   updated_at?: string;
   submitted_at?: string;
+  reviewed_at?: string;
+  // The list/detail queries select `a.*, v.name as vendor_name`, so these come
+  // back flat on the row rather than nested under `vendor`.
+  vendor_name?: string;
+  vendor_email?: string;
+  risk_score?: number;
+  risk_level?: 'low' | 'medium' | 'high' | 'critical';
+  overall_score?: number;
+  ai_summary?: string;
+  strengths?: string[];
+  weaknesses?: string[];
+  recommendations?: string[];
+  category_scores?: Array<{ category: string; score: number }>;
 }
 
 export const assessmentsApi = {
@@ -224,7 +243,7 @@ export const assessmentsApi = {
     if (result.error) {
       return { data: [] };
     }
-    return result;
+    return { error: result.error, message: result.message };
   },
 
   async getById(id: string): Promise<ApiResponse<Assessment>> {
@@ -232,7 +251,7 @@ export const assessmentsApi = {
     if (result.data) {
       return { data: result.data.assessment };
     }
-    return result;
+    return { error: result.error, message: result.message };
   },
 
   async create(assessment: { vendor_id: string; status?: string }): Promise<ApiResponse<Assessment>> {
@@ -243,18 +262,7 @@ export const assessmentsApi = {
     if (result.data) {
       return { data: result.data.assessment };
     }
-    return result;
-  },
-
-  async update(id: string, assessment: Partial<Assessment>): Promise<ApiResponse<Assessment>> {
-    const result = await request<{ assessment: Assessment }>(`/api/assessments/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(assessment),
-    });
-    if (result.data) {
-      return { data: result.data.assessment };
-    }
-    return result;
+    return { error: result.error, message: result.message };
   },
 };
 
@@ -278,7 +286,7 @@ export const usersApi = {
     if (result.error) {
       return { data: [] };
     }
-    return result;
+    return { error: result.error, message: result.message };
   },
 
   async create(user: { email: string; password: string; full_name?: string; company?: string; roles?: string[] }): Promise<ApiResponse<UserProfile>> {
@@ -310,6 +318,20 @@ export const usersApi = {
   },
 };
 
+// Invitations API
+export const invitationsApi = {
+  async create(vendorId: string, assessmentId: string, email: string, sendEmailNotification = true): Promise<ApiResponse<{ token: string }>> {
+    const result = await request<{ invitation: { token: string } }>('/api/invitations', {
+      method: 'POST',
+      body: JSON.stringify({ vendorId, assessmentId, email, sendEmailNotification }),
+    });
+    if (result.data?.invitation) {
+      return { data: result.data.invitation };
+    }
+    return { error: result.error, message: result.message };
+  },
+};
+
 // Questions API
 export interface Question {
   id: string;
@@ -335,7 +357,7 @@ export const questionsApi = {
     if (result.error) {
       return { data: [] };
     }
-    return result;
+    return { error: result.error, message: result.message };
   },
 
   async create(question: Omit<Question, 'id'>): Promise<ApiResponse<Question>> {
@@ -434,7 +456,7 @@ export const evidenceApi = {
     if (result.error) {
       return { data: [] };
     }
-    return result;
+    return { error: result.error, message: result.message };
   },
 
   async download(id: string): Promise<Blob> {
@@ -491,6 +513,15 @@ export interface AuditLogFilters {
   offset?: number;
 }
 
+export interface AuditLogStats {
+  totalActions: number;
+  activeUsers: number;
+  resourcesAccessed: number;
+  avgActionsPerUser: number;
+  topActions?: Array<{ action: string; count: number }>;
+  resourcesBreakdown?: Array<{ resource_type: string; count: number }>;
+}
+
 export const auditLogApi = {
   async get(filters?: AuditLogFilters): Promise<ApiResponse<{ logs: AuditLog[]; pagination: { total: number; limit: number; offset: number } }>> {
     const params = new URLSearchParams();
@@ -535,47 +566,59 @@ export const auditLogApi = {
     return await response.blob();
   },
 
-  async getStats(days?: number): Promise<ApiResponse<Record<string, unknown>>> {
+  async getStats(days?: number): Promise<ApiResponse<AuditLogStats>> {
     const params = days ? `?days=${days}` : '';
-    return request(`/api/audit-logs/stats${params}`);
+    return request<AuditLogStats>(`/api/audit-logs/stats${params}`);
   },
 };
 
 // Remediation API
+// Columns mirror `remediation_items` (init.sql) and the SELECTs in
+// routes/remediation.js. There is no `finding`/`comments`/`linked_evidence`
+// column — the title field is `title`.
 export interface RemediationItem {
   id: string;
   assessment_id: string;
+  vendor_id: string;
+  vendor_name?: string;
   question_id?: string;
-  finding: string;
+  title: string;
   description: string;
+  risk_level?: string;
   priority: 'critical' | 'high' | 'medium' | 'low';
-  status: 'open' | 'in_progress' | 'completed' | 'verified' | 'closed';
+  // Hyphen, not underscore — matches the server writes in routes/remediation.js
+  // and the init.sql comment.
+  status: 'open' | 'in-progress' | 'completed' | 'verified' | 'closed';
   due_date?: string;
   assigned_to?: string;
-  assigned_to_name?: string;
   assigned_to_email?: string;
-  created_by: string;
-  created_by_name?: string;
-  completed_at?: string;
+  vendor_contact?: string;
+  vendor_response?: string;
+  vendor_response_at?: string;
+  reviewer_notes?: string;
+  verified_by?: string;
   verified_at?: string;
-  closed_at?: string;
   closed_by?: string;
-  comments: Array<{
+  closed_at?: string;
+  closure_reason?: string;
+  created_at: string;
+  updated_at: string;
+  // No server route reads or writes remediation_comments yet, so this is never
+  // populated — kept optional so the detail dialog still compiles.
+  comments?: Array<{
     id: string;
     user_id: string;
     user_name?: string;
     comment: string;
     created_at: string;
   }>;
-  linked_evidence: string[];
-  created_at: string;
-  updated_at: string;
 }
 
 export interface CreateRemediationItem {
   assessment_id: string;
+  vendor_id?: string;
   question_id?: string;
-  finding: string;
+  title: string;
   description: string;
   priority: 'critical' | 'high' | 'medium' | 'low';
   due_date?: string;
@@ -584,53 +627,87 @@ export interface CreateRemediationItem {
 
 export const remediationApi = {
   async getByAssessment(assessmentId: string): Promise<ApiResponse<RemediationItem[]>> {
-    return request<RemediationItem[]>(`/api/remediation/${assessmentId}`);
+    const result = await request<{ remediation: RemediationItem[] }>(`/api/remediation/${assessmentId}`);
+    if (result.data?.remediation) {
+      return { data: result.data.remediation };
+    }
+    return { error: result.error, message: result.message };
   },
 
   async getAll(): Promise<ApiResponse<RemediationItem[]>> {
-    return request<RemediationItem[]>('/api/remediation');
+    const result = await request<{ remediation: RemediationItem[] }>('/api/remediation');
+    if (result.data?.remediation) {
+      return { data: result.data.remediation };
+    }
+    return { error: result.error, message: result.message };
   },
 
   async create(item: CreateRemediationItem): Promise<ApiResponse<RemediationItem>> {
-    return request<RemediationItem>('/api/remediation', {
+    const result = await request<{ remediation: RemediationItem }>('/api/remediation', {
       method: 'POST',
       body: JSON.stringify(item),
     });
+    if (result.data?.remediation) {
+      return { data: result.data.remediation };
+    }
+    return { error: result.error, message: result.message };
   },
 
   async update(id: string, updates: Partial<RemediationItem>): Promise<ApiResponse<RemediationItem>> {
-    return request<RemediationItem>(`/api/remediation/${id}`, {
+    const result = await request<{ remediation: RemediationItem }>(`/api/remediation/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(updates),
     });
+    if (result.data?.remediation) {
+      return { data: result.data.remediation };
+    }
+    return { error: result.error, message: result.message };
   },
 
   async complete(id: string, comment?: string): Promise<ApiResponse<RemediationItem>> {
-    return request<RemediationItem>(`/api/remediation/${id}/complete`, {
+    const result = await request<{ remediation: RemediationItem }>(`/api/remediation/${id}/complete`, {
       method: 'PATCH',
-      body: JSON.stringify({ comment }),
+      body: JSON.stringify({ completion_notes: comment }),
     });
+    if (result.data?.remediation) {
+      return { data: result.data.remediation };
+    }
+    return { error: result.error, message: result.message };
   },
 
   async verify(id: string, comment?: string): Promise<ApiResponse<RemediationItem>> {
-    return request<RemediationItem>(`/api/remediation/${id}/verify`, {
+    const result = await request<{ remediation: RemediationItem }>(`/api/remediation/${id}/verify`, {
       method: 'PATCH',
-      body: JSON.stringify({ comment }),
+      body: JSON.stringify({ verified: true, closure_reason: comment }),
     });
+    if (result.data?.remediation) {
+      return { data: result.data.remediation };
+    }
+    return { error: result.error, message: result.message };
   },
 
   async close(id: string, comment?: string): Promise<ApiResponse<RemediationItem>> {
-    return request<RemediationItem>(`/api/remediation/${id}/close`, {
+    const result = await request<{ remediation: RemediationItem }>(`/api/remediation/${id}/close`, {
       method: 'PATCH',
-      body: JSON.stringify({ comment }),
+      body: JSON.stringify({ closure_reason: comment }),
     });
+    if (result.data?.remediation) {
+      return { data: result.data.remediation };
+    }
+    return { error: result.error, message: result.message };
   },
 
+  // No matching route on the server — POST /api/remediation/:id/comment 404s and
+  // nothing reads or writes remediation_comments. Left in place pending a route.
   async addComment(id: string, comment: string): Promise<ApiResponse<RemediationItem>> {
-    return request<RemediationItem>(`/api/remediation/${id}/comment`, {
+    const result = await request<{ remediation: RemediationItem }>(`/api/remediation/${id}/comment`, {
       method: 'POST',
       body: JSON.stringify({ comment }),
     });
+    if (result.data?.remediation) {
+      return { data: result.data.remediation };
+    }
+    return { error: result.error, message: result.message };
   },
 };
 
@@ -755,20 +832,20 @@ export const reportsApi = {
 };
 
 // Notifications API
+// Shape mirrors the notifications table (init.sql) and routes/notifications.js:
+// the text fields are `subject`/`body` and there is no `category` column.
 export interface Notification {
   id: string;
-  user_id?: string;
-  recipient_email?: string;
-  type: 'info' | 'warning' | 'error' | 'success';
+  user_id?: string | null;
+  recipient_email?: string | null;
+  template_name?: string | null;
+  type: string;
   priority: 'low' | 'normal' | 'high' | 'urgent';
-  category: 'assessment' | 'remediation' | 'evidence' | 'system' | 'security';
-  title: string;
-  message: string;
-  action_url?: string;
-  metadata?: Record<string, unknown>;
-  status: 'pending' | 'sent' | 'read' | 'expired';
-  read_at?: string;
-  expires_at?: string;
+  subject?: string | null;
+  body: string;
+  metadata?: Record<string, unknown> | null;
+  status: 'pending' | 'sent' | 'failed' | 'read';
+  read_at?: string | null;
   created_at: string;
 }
 

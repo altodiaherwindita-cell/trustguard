@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { randomBytes } from 'crypto';
 import { pool } from '../index.js';
 import { sendAssessmentInvitation } from '../services/emailService.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
@@ -47,7 +48,7 @@ router.post('/', authenticateToken, requireRole('admin', 'tprm_analyst'), async 
     }
 
     // Generate secure token
-    const token = require('crypto').randomBytes(32).toString('hex');
+    const token = randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
 
     // Get vendor name for email

@@ -100,31 +100,16 @@ export default function NotificationsPage() {
     }
   };
 
-  const getTypeBadge = (type: string) => {
-    switch (type) {
-      case 'success':
-        return <Badge className="bg-green-500">Success</Badge>;
-      case 'warning':
-        return <Badge className="bg-yellow-500">Warning</Badge>;
-      case 'error':
-        return <Badge variant="destructive">Error</Badge>;
+  const getPriorityBadge = (priority: string) => {
+    switch (priority) {
+      case 'urgent':
+        return <Badge variant="destructive">Urgent</Badge>;
+      case 'high':
+        return <Badge className="bg-warning text-warning-foreground">High</Badge>;
+      case 'low':
+        return <Badge className="bg-success text-success-foreground">Low</Badge>;
       default:
-        return <Badge variant="secondary">Info</Badge>;
-    }
-  };
-
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case 'security':
-        return 'border-l-4 border-l-red-500';
-      case 'remediation':
-        return 'border-l-4 border-l-orange-500';
-      case 'assessment':
-        return 'border-l-4 border-l-blue-500';
-      case 'evidence':
-        return 'border-l-4 border-l-purple-500';
-      default:
-        return 'border-l-4 border-l-gray-500';
+        return <Badge variant="secondary">Normal</Badge>;
     }
   };
 
@@ -210,19 +195,19 @@ export default function NotificationsPage() {
               {notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`p-4 rounded-lg border bg-card ${!notification.status.includes('read') ? 'bg-blue-50 dark:bg-blue-950/20' : ''} ${getCategoryColor(notification.category)} transition-colors`}
+                  className={`p-4 rounded-lg border bg-card ${notification.status !== 'read' ? 'bg-blue-50 dark:bg-blue-950/20' : ''} transition-colors`}
                 >
                   <div className="flex justify-between items-start gap-4">
                     <div className="flex-1 space-y-2">
                       <div className="flex items-center gap-2">
                         {getPriorityIcon(notification.priority)}
-                        <span className="font-semibold">{notification.title}</span>
-                        {getTypeBadge(notification.type)}
-                        {!notification.status.includes('read') && (
+                        <span className="font-semibold">{notification.subject}</span>
+                        {getPriorityBadge(notification.priority)}
+                        {notification.status !== 'read' && (
                           <Badge variant="secondary" className="text-xs">New</Badge>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground">{notification.message}</p>
+                      <p className="text-sm text-muted-foreground">{notification.body}</p>
                       <div className="flex items-center gap-4 text-xs text-muted-foreground">
                         <span>{format(new Date(notification.created_at), 'MMM dd, yyyy HH:mm')}</span>
                         {notification.read_at && (
@@ -230,7 +215,7 @@ export default function NotificationsPage() {
                         )}
                       </div>
                     </div>
-                    {!notification.status.includes('read') && (
+                    {notification.status !== 'read' && (
                       <Button
                         variant="ghost"
                         size="sm"

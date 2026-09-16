@@ -239,7 +239,9 @@ export default function EvidenceManagementPage({ assessmentId: initialAssessment
 
   const handleDelete = async (id: string) => {
     const result = await evidenceApi.delete(id);
-    if (result.data || result.error === undefined) {
+    // DELETE answers with { message }, and request<void> types data as void, so
+    // the presence of an error is the only reliable signal here.
+    if (!result.error) {
       toast({
         title: 'Success',
         description: 'Evidence deleted successfully',

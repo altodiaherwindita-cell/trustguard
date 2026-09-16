@@ -66,8 +66,13 @@ router.post('/', authenticateToken, requireRole('admin', 'tprm_analyst'), async 
       priority, 
       due_date, 
       assigned_to,
-      vendor_contact 
+      vendor_contact
     } = req.body;
+
+    // Validate required fields
+    if (!assessment_id || !vendor_id || !title) {
+      return res.status(400).json({ error: 'assessment_id, vendor_id, and title are required' });
+    }
 
     const result = await pool.query(
       `INSERT INTO remediation_items 

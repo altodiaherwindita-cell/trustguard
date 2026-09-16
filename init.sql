@@ -161,16 +161,17 @@ ON CONFLICT (id) DO NOTHING;
 -- ============================================
 
 -- Evidence documents table
+-- Column names are the code-facing names used by server/routes/evidence.js
+-- (file_name = original/display name, file_type = MIME type).
 CREATE TABLE IF NOT EXISTS evidence_documents (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   assessment_id UUID NOT NULL REFERENCES assessments(id) ON DELETE CASCADE,
   question_id TEXT REFERENCES questions(id) ON DELETE SET NULL,
   vendor_id UUID NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
-  filename TEXT NOT NULL,
-  original_filename TEXT NOT NULL,
+  file_name TEXT NOT NULL,
   file_path TEXT NOT NULL,
   file_size BIGINT NOT NULL,
-  mime_type TEXT NOT NULL,
+  file_type TEXT NOT NULL,
   file_hash TEXT, -- SHA256 hash for integrity verification
   description TEXT,
   uploaded_by UUID REFERENCES users(id) ON DELETE SET NULL,

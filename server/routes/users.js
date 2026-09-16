@@ -150,7 +150,8 @@ router.get('/:id', authenticateToken, requireRole('admin', 'tprm_analyst'), asyn
        FROM users u
        LEFT JOIN user_roles ur ON u.id = ur.user_id
        WHERE u.id = $1
-       GROUP BY u.id`
+       GROUP BY u.id`,
+      [req.params.id]
     );
 
     if (result.rows.length === 0) {

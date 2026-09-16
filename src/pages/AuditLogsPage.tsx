@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { auditLogApi, type AuditLog, type AuditLogFilters } from '@/lib/api';
+import { auditLogApi, type AuditLog, type AuditLogFilters, type AuditLogStats } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -27,14 +27,7 @@ import { format } from 'date-fns';
 export default function AuditLogsPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<{
-    totalActions: number;
-    activeUsers: number;
-    resourcesAccessed: number;
-    avgActionsPerUser: number;
-    topActions?: Array<{ action: string; count: number }>;
-    resourcesBreakdown?: Array<{ resource_type: string; count: number }>;
-  } | null>(null);
+  const [stats, setStats] = useState<AuditLogStats | null>(null);
   const [userRoles, setUserRoles] = useState<string[]>([]);
   const [filters, setFilters] = useState<AuditLogFilters>({
     limit: 50,
@@ -234,40 +227,40 @@ export default function AuditLogsPage() {
             <div className="space-y-2">
               <Label htmlFor="action">Action Type</Label>
               <Select
-                value={filters.action || ''}
-                onValueChange={(val) => setFilters({ ...filters, action: val || undefined })}
+                value={filters.action || 'all'}
+                onValueChange={(val) => setFilters({ ...filters, action: val === 'all' ? undefined : val })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="All Actions" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Actions</SelectItem>
-                  <SelectItem value="CREATE">Create</SelectItem>
-                  <SelectItem value="UPDATE">Update</SelectItem>
-                  <SelectItem value="DELETE">Delete</SelectItem>
-                  <SelectItem value="VIEW">View</SelectItem>
-                  <SelectItem value="VERIFY">Verify</SelectItem>
-                  <SelectItem value="LOGIN">Login</SelectItem>
-                  <SelectItem value="LOGOUT">Logout</SelectItem>
+                  <SelectItem value="all">All Actions</SelectItem>
+                  {/* The action column is free text; these are every value the
+                      server currently writes (routes/evidence.js, routes/remediation.js). */}
+                  <SelectItem value="evidence_uploaded">Evidence Uploaded</SelectItem>
+                  <SelectItem value="evidence_downloaded">Evidence Downloaded</SelectItem>
+                  <SelectItem value="evidence_verified">Evidence Verified</SelectItem>
+                  <SelectItem value="evidence_deleted">Evidence Deleted</SelectItem>
+                  <SelectItem value="remediation_created">Remediation Created</SelectItem>
+                  <SelectItem value="remediation_completed">Remediation Completed</SelectItem>
+                  <SelectItem value="remediation_verified">Remediation Verified</SelectItem>
+                  <SelectItem value="remediation_closed">Remediation Closed</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="resourceType">Resource Type</Label>
               <Select
-                value={filters.resourceType || ''}
-                onValueChange={(val) => setFilters({ ...filters, resourceType: val || undefined })}
+                value={filters.resourceType || 'all'}
+                onValueChange={(val) => setFilters({ ...filters, resourceType: val === 'all' ? undefined : val })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="All Resources" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Resources</SelectItem>
-                  <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="assessment">Assessment</SelectItem>
-                  <SelectItem value="evidence">Evidence</SelectItem>
-                  <SelectItem value="vendor">Vendor</SelectItem>
-                  <SelectItem value="remediation">Remediation</SelectItem>
+                  <SelectItem value="all">All Resources</SelectItem>
+                  <SelectItem value="evidence_document">Evidence Document</SelectItem>
+                  <SelectItem value="remediation_item">Remediation Item</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -117,7 +117,7 @@ export default function ChangePasswordPage() {
     setUserFromToken(updatedUser);
     
     // Redirect to dashboard
-    navigate('/dashboard', { replace: true });
+    navigate('/', { replace: true });
   };
 
   const requirements = [

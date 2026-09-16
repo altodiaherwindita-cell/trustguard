@@ -89,18 +89,19 @@ router.post('/', authenticateToken, upload.single('file'), async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    const fileHash = calculateFileHash(req.file.buffer);
+    const fileHash = calculateFileHash(fs.readFileSync(req.file.path));
     const isVendorUpload = req.userRole === 'vendor';
 
     const result = await pool.query(
-      `INSERT INTO evidence_documents 
-       (assessment_id, question_id, file_name, file_path, file_size, file_type, 
+      `INSERT INTO evidence_documents
+       (assessment_id, question_id, vendor_id, file_name, file_path, file_size, file_type,
         file_hash, description, uploaded_by, is_vendor_upload, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        RETURNING *`,
       [
         assessment_id,
         question_id || null,
+        assessment.vendor_id,
         req.file.originalname,
         req.file.path,
         req.file.size,
@@ -177,7 +178,7 @@ router.get('/:assessmentId', authenticateToken, async (req, res) => {
 router.get('/:id/download', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT e.*, a.id as assessment_id FROM evidence_documents e
+      `SELECT e.*, a.id as assessment_id, v.owner_user_id FROM evidence_documents e
        JOIN assessments a ON e.assessment_id = a.id
        JOIN vendors v ON a.vendor_id = v.id
        WHERE e.id = $1`,

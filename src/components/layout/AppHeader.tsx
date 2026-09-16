@@ -1,6 +1,8 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { notificationsApi, type Notification } from '@/lib/api';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import {
   Bell, Search, Shield, Menu, Sun, Moon, LogOut, User,
@@ -13,7 +15,7 @@ import {
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 const QUICK_ACTIONS = [
   { label: 'Add Vendor', href: '/vendors', icon: Shield, show: true },
@@ -21,18 +23,33 @@ const QUICK_ACTIONS = [
   { label: 'Review Pending', href: '/assessments?status=submitted', icon: Clock, show: true },
 ];
 
-const NOTIFICATIONS = [
-  { id: 1, type: 'warning', title: 'High risk vendor detected', time: '5m ago', read: false },
-  { id: 2, type: 'success', title: 'Assessment approved', time: '1h ago', read: false },
-  { id: 3, type: 'info', title: 'New evidence uploaded', time: '3h ago', read: true },
-  { id: 4, type: 'info', title: 'Remediation due tomorrow', time: '6h ago', read: true },
-];
-
 export function AppHeader() {
   const location = useLocation();
   const { user, isTPRM, isAdmin, signOut } = useAuth();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const initials = (user?.email || '??').slice(0, 2).toUpperCase();
+
+  // The bell used to render a hardcoded array and an always-on red dot. Load
+  // the real feed instead so the badge reflects actual unread state.
+  const loadNotifications = async () => {
+    const result = await notificationsApi.getAll(5);
+    if (result.error) return;
+    setNotifications(result.data?.notifications || []);
+    setUnreadCount(result.data?.unreadCount || 0);
+  };
+
+  useEffect(() => {
+    if (!user) return;
+    loadNotifications();
+  }, [user]);
+
+  const handleMarkAllRead = async () => {
+    const result = await notificationsApi.markAllAsRead();
+    if (result.error) return toast.error(result.error);
+    loadNotifications();
+  };
 
   return (
     <header className="sticky top-0 z-40 h-16 glass-strong border-b border-card-border/50">
@@ -119,51 +136,61 @@ export function AppHeader() {
                 aria-label="Notifications"
               >
                 <Bell className="w-5 h-5" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-destructive animate-pulse-dot" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-destructive animate-pulse-dot" />
+                )}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-80 glass-strong p-0">
               <div className="p-4 border-b border-border/50 flex items-center justify-between">
                 <DropdownMenuLabel className="font-medium">Notifications</DropdownMenuLabel>
-                <Button variant="ghost" size="sm" className="text-xs">Mark all read</Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs"
+                  onClick={handleMarkAllRead}
+                  disabled={unreadCount === 0}
+                >
+                  Mark all read
+                </Button>
               </div>
               <div className="max-h-96 overflow-auto">
-                {NOTIFICATIONS.map((notif) => (
-                  <DropdownMenuItem
-                    key={notif.id}
-                    className={cn(
-                      'p-3 gap-3 hover:bg-muted/50',
-                      !notif.read && 'bg-muted/30'
-                    )}
-                    onSelect={() => {}}
-                  >
-                    <div
-                      className={cn(
-                        'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
-                        notif.type === 'warning' && 'bg-destructive/10 text-destructive',
-                        notif.type === 'success' && 'bg-success/10 text-success',
-                        notif.type === 'info' && 'bg-primary/10 text-primary'
-                      )}
+                {notifications.length === 0 ? (
+                  <p className="p-4 text-sm text-muted-foreground text-center">No notifications</p>
+                ) : notifications.map((notif) => {
+                  const unread = notif.status !== 'read';
+                  return (
+                    <DropdownMenuItem
+                      key={notif.id}
+                      className={cn('p-3 gap-3 hover:bg-muted/50', unread && 'bg-muted/30')}
+                      onSelect={() => { notificationsApi.markAsRead(notif.id).then(loadNotifications); }}
                     >
-                      {notif.type === 'warning' && <AlertCircle className="w-4 h-4" />}
-                      {notif.type === 'success' && <CheckCircle2 className="w-4 h-4" />}
-                      {notif.type === 'info' && <Clock className="w-4 h-4" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={cn('text-sm font-medium', !notif.read && 'font-semibold')}>
-                        {notif.title}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{notif.time}</p>
-                    </div>
-                    {!notif.read && (
-                      <span className="w-2 h-2 rounded-full bg-primary animate-pulse-dot" />
-                    )}
-                  </DropdownMenuItem>
-                ))}
+                      <div
+                        className={cn(
+                          'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
+                          (notif.priority === 'urgent' || notif.priority === 'high') && 'bg-destructive/10 text-destructive',
+                          notif.priority === 'low' && 'bg-success/10 text-success',
+                          notif.priority === 'normal' && 'bg-primary/10 text-primary'
+                        )}
+                      >
+                        {(notif.priority === 'urgent' || notif.priority === 'high') && <AlertCircle className="w-4 h-4" />}
+                        {notif.priority === 'low' && <CheckCircle2 className="w-4 h-4" />}
+                        {notif.priority === 'normal' && <Clock className="w-4 h-4" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={cn('text-sm font-medium', unread && 'font-semibold')}>
+                          {notif.subject}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{notif.body}</p>
+                      </div>
+                      {unread && <span className="w-2 h-2 rounded-full bg-primary animate-pulse-dot" />}
+                    </DropdownMenuItem>
+                  );
+                })}
               </div>
               <div className="p-3 border-t border-border/50 text-center">
-                <Button variant="ghost" size="sm" className="w-full text-xs">
-                  View all notifications
+                <Button variant="ghost" size="sm" className="w-full text-xs" asChild>
+                  <Link to="/notifications">View all notifications</Link>
                 </Button>
               </div>
             </DropdownMenuContent>
@@ -180,12 +207,13 @@ export function AppHeader() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="gap-2 h-10 rounded-xl pr-3 pl-2">
                 <Avatar className="w-8 h-8">
-                  <AvatarImage src={user?.avatar_url || ''} alt={user?.full_name || ''} />
+                  {/* No avatar_url exists on the API user, so the fallback is the
+                      only thing that ever renders. */}
                   <AvatarFallback className="text-xs font-medium bg-primary text-primary-foreground">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
-                <span className="hidden sm:block text-sm font-medium">{user?.full_name || user?.email}</span>
+                <span className="hidden sm:block text-sm font-medium">{user?.fullName || user?.email}</span>
                 <ChevronDown className="w-4 h-4 hidden sm:block text-muted-foreground" />
               </Button>
             </DropdownMenuTrigger>

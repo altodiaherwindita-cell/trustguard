@@ -170,10 +170,11 @@ async function checkRemediationDueReminders() {
         r.due_date,
         r.assigned_to,
         r.assigned_to_email,
+        r.vendor_id,
         v.name as vendor_name
       FROM remediation_items r
       JOIN vendors v ON r.vendor_id = v.id
-      WHERE r.status IN ('open', 'in_progress')
+      WHERE r.status IN ('open', 'in-progress')
         AND r.due_date IS NOT NULL
         AND r.due_date <= NOW() + INTERVAL '7 days'
         AND r.due_date > NOW()
@@ -275,8 +276,9 @@ async function checkVendorAssessmentSchedule() {
               )
             FROM users u
             JOIN user_roles ur ON u.id = ur.user_id
+            LEFT JOIN user_notification_settings uns ON uns.user_id = u.id
             WHERE ur.role IN ('tprm_analyst', 'admin')
-              AND u.email_enabled = true
+              AND COALESCE(uns.email_enabled, true) = true
           `, [vendor.vendor_id, daysUntilDue]);
         }
       }

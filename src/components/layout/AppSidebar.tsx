@@ -70,10 +70,10 @@ export function AppSidebar() {
   const navigation = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard, show: true, badge: null },
     { name: 'Vendors', href: '/vendors', icon: Building2, show: isTPRM, badge: null },
-    { name: 'Assessments', href: '/assessments', icon: ClipboardList, show: isTPRM, badge: '5' },
+    { name: 'Assessments', href: '/assessments', icon: ClipboardList, show: isTPRM, badge: null },
     { name: 'Questionnaires', href: '/questionnaires', icon: FileText, show: isTPRM, badge: null },
     { name: 'Evidence', href: '/evidence', icon: FolderOpen, show: true, badge: null },
-    { name: 'Remediation', href: '/remediation', icon: AlertTriangle, show: isTPRM, badge: '12' },
+    { name: 'Remediation', href: '/remediation', icon: AlertTriangle, show: isTPRM, badge: null },
     { name: 'Audit Logs', href: '/audit-logs', icon: Activity, show: isAdmin, badge: null },
     { name: 'AI Assistant', href: '/ai-assistant', icon: Bot, show: isTPRM, badge: null },
     { name: 'Settings', href: '/settings', icon: Settings, show: true, badge: null },

@@ -43,6 +43,15 @@ Thumbs.db
 *.tmp
 *.temp
 
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+
+# Knowledge graph output
+graphify-out/
+
 # Documentation/Summary files (auto-generated)
 BUG_FIXES_SUMMARY.md
 BUILD_CONTINUATION.md

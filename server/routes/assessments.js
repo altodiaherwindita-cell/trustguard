@@ -152,7 +152,12 @@ router.get('/:id/responses', authenticateToken, async (req, res) => {
 // Create assessment (TPRM only)
 router.post('/', authenticateToken, requireRole('admin', 'tprm_analyst'), async (req, res) => {
   try {
-    const { vendorId } = req.body;
+    // Accept both casings: the web client sends vendor_id, older callers vendorId.
+    const vendorId = req.body.vendorId || req.body.vendor_id;
+
+    if (!vendorId) {
+      return res.status(400).json({ error: 'vendorId is required' });
+    }
 
     const result = await pool.query(
       `INSERT INTO assessments (vendor_id, status)
@@ -172,7 +177,13 @@ router.post('/', authenticateToken, requireRole('admin', 'tprm_analyst'), async 
 router.post('/:id/responses', authenticateToken, async (req, res) => {
   try {
     const assessmentId = req.params.id;
-    const { questionId, answer } = req.body;
+    // Web client sends question_id; older callers questionId.
+    const questionId = req.body.questionId || req.body.question_id;
+    const { answer } = req.body;
+
+    if (!questionId) {
+      return res.status(400).json({ error: 'questionId is required' });
+    }
 
     // Verify ownership
     const checkResult = await pool.query(
@@ -228,13 +239,15 @@ router.post('/:id/submit', authenticateToken, async (req, res) => {
     }
 
     const isOwner = checkResult.rows[0].owner_user_id === req.userId;
+    // Same rule as the sibling /responses route: TPRM staff act on any assessment.
+    const hasTPRMRole = req.userRole === 'admin' || req.userRole === 'tprm_analyst';
 
-    if (!isOwner) {
+    if (!isOwner && !hasTPRMRole) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
     const result = await pool.query(
-      `UPDATE assessments 
+      `UPDATE assessments
        SET status = 'submitted', submitted_at = now()
        WHERE id = $1
        RETURNING *`,

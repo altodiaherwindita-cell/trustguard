@@ -20,6 +20,8 @@ import UserManagementPage from "@/pages/UserManagementPage";
 import AuditLogsPage from "@/pages/AuditLogsPage";
 import EvidenceManagementPage from "@/pages/EvidenceManagementPage";
 import ChangePasswordPage from "@/pages/ChangePasswordPage";
+import RemediationPage from "@/pages/RemediationPage";
+import NotificationsPage from "@/pages/NotificationsPage";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +51,8 @@ const App = () => (
             <Route path="/users" element={<Protected role="admin"><UserManagementPage /></Protected>} />
             <Route path="/audit-logs" element={<Protected role="admin"><AuditLogsPage /></Protected>} />
             <Route path="/evidence" element={<Protected><EvidenceManagementPage /></Protected>} />
+            <Route path="/remediation" element={<Protected role="tprm"><RemediationPage /></Protected>} />
+            <Route path="/notifications" element={<Protected><NotificationsPage /></Protected>} />
             <Route path="/settings" element={<Protected><SettingsPage /></Protected>} />
             <Route path="*" element={<NotFound />} />
           </Routes>

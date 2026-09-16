@@ -37,8 +37,24 @@ export const authenticateToken = async (req, res, next) => {
       return res.status(401).json({ error: 'User not found or inactive' });
     }
 
+    // Resolve roles here so routes on the authenticateToken-only path can read
+    // req.userRole. Previously only requireRole set it, so ownership checks in
+    // routes without requireRole saw undefined and denied admins/analysts.
+    const rolesResult = await pool.query(
+      'SELECT role FROM user_roles WHERE user_id = $1',
+      [decoded.userId]
+    );
+    const roles = rolesResult.rows.map(r => r.role);
+
     req.user = result.rows[0];
     req.userId = decoded.userId;
+    // notifications.js matches on `user_id = $1 OR recipient_email = $2`; without
+    // this the email half of that predicate was always NULL and never matched.
+    req.userEmail = result.rows[0].email;
+    req.userRoles = roles;
+    // Most privileged role wins, so `req.userRole === 'admin'` holds for admins
+    // who also carry tprm_analyst.
+    req.userRole = ['admin', 'tprm_analyst', 'vendor'].find(r => roles.includes(r));
     req.tokenIssuedAt = decoded.iat;
 
     // Check session activity timeout (15 minutes of inactivity)

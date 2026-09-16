@@ -60,11 +60,16 @@ export function Dashboard() {
           // Vendor: find their vendor + assessment
           const vendorsResult = await vendorsApi.getAll();
           const vs = vendorsResult.data || [];
-          const vendor = vs.find(v => true); // Filter by user when backend supports it
+          // ponytail: `/api/vendors` is TPRM-only server-side, so this branch only
+          // reaches here if the route guard changes; owner_user_id is the join the
+          // server uses in /my-vendors. Swap to vendorsApi.getMine() when it exists.
+          const vendor = vs.find(v => v.owner_user_id === user?.id);
           if (vendor) {
             const assessmentsResult = await assessmentsApi.getAll();
             const as = assessmentsResult.data || [];
-            const vendorAssessments = as.filter(a => true); // Filter by vendor_id when backend supports it
+            const vendorAssessments = as
+              .filter(a => a.vendor_id === vendor.id)
+              .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
             setVendorAssessment({ vendor, assessment: vendorAssessments[0] || null });
           }
         }
@@ -121,7 +126,7 @@ export function Dashboard() {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <StatCard title="Total Vendors" value={stats.total} subtitle="Active third parties" icon={Building2} variant="primary" />
-        <StatCard title="Pending Assessments" value={stats.pending} subtitle="Awaiting review" icon={ClipboardList} variant="accent" />
+        <StatCard title="Pending Assessments" value={stats.pending} subtitle="Awaiting review" icon={ClipboardList} variant="primary" />
         <StatCard title="High Risk Vendors" value={stats.highRisk} subtitle="Require attention" icon={AlertTriangle} variant="warning" />
         <StatCard title="Completed (30d)" value={stats.completed} subtitle="Assessments submitted" icon={CheckCircle2} variant="success" />
       </div>

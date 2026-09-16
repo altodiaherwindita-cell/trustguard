@@ -6,6 +6,34 @@ import ExcelJS from 'exceljs';
 
 const router = Router();
 
+/**
+ * JSONB columns come back already parsed from pg, so a plain string answer like
+ * "Yes" is a JS string, not JSON text. JSON.parse("Yes") throws. Normalize to an
+ * array without assuming the driver handed us text.
+ */
+function toArray(value) {
+  if (value == null) return [];
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [parsed];
+    } catch {
+      return [value];
+    }
+  }
+  return [value];
+}
+
+/** Render a single answer (string, boolean, array, or object) for display. */
+function toAnswerText(value) {
+  if (value == null || value === '') return 'No response';
+  if (Array.isArray(value)) return value.length ? value.join(', ') : 'No response';
+  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
+}
+
 // Generate PDF report for an assessment
 router.get('/assessment/:id/pdf', authenticateToken, async (req, res) => {
   try {
@@ -91,45 +119,39 @@ router.get('/assessment/:id/pdf', authenticateToken, async (req, res) => {
     }
 
     // Strengths
-    if (assessment.strengths && Array.isArray(JSON.parse(assessment.strengths))) {
-      const strengths = JSON.parse(assessment.strengths);
-      if (strengths.length > 0) {
-        doc.fontSize(14).text('Strengths', { underline: true });
-        doc.moveDown();
-        doc.fontSize(11);
-        strengths.forEach(s => {
-          doc.text(`• ${s}`, { bulletIndent: 10 });
-        });
-        doc.moveDown();
-      }
+    const strengths = toArray(assessment.strengths);
+    if (strengths.length > 0) {
+      doc.fontSize(14).text('Strengths', { underline: true });
+      doc.moveDown();
+      doc.fontSize(11);
+      strengths.forEach(s => {
+        doc.text(`• ${s}`, { bulletIndent: 10 });
+      });
+      doc.moveDown();
     }
 
     // Weaknesses
-    if (assessment.weaknesses && Array.isArray(JSON.parse(assessment.weaknesses))) {
-      const weaknesses = JSON.parse(assessment.weaknesses);
-      if (weaknesses.length > 0) {
-        doc.fontSize(14).text('Areas for Improvement', { underline: true });
-        doc.moveDown();
-        doc.fontSize(11);
-        weaknesses.forEach(w => {
-          doc.text(`• ${w}`, { bulletIndent: 10 });
-        });
-        doc.moveDown();
-      }
+    const weaknesses = toArray(assessment.weaknesses);
+    if (weaknesses.length > 0) {
+      doc.fontSize(14).text('Areas for Improvement', { underline: true });
+      doc.moveDown();
+      doc.fontSize(11);
+      weaknesses.forEach(w => {
+        doc.text(`• ${w}`, { bulletIndent: 10 });
+      });
+      doc.moveDown();
     }
 
     // Recommendations
-    if (assessment.recommendations && Array.isArray(JSON.parse(assessment.recommendations))) {
-      const recommendations = JSON.parse(assessment.recommendations);
-      if (recommendations.length > 0) {
-        doc.fontSize(14).text('Recommendations', { underline: true });
-        doc.moveDown();
-        doc.fontSize(11);
-        recommendations.forEach(r => {
-          doc.text(`• ${r}`, { bulletIndent: 10 });
-        });
-        doc.moveDown();
-      }
+    const recommendations = toArray(assessment.recommendations);
+    if (recommendations.length > 0) {
+      doc.fontSize(14).text('Recommendations', { underline: true });
+      doc.moveDown();
+      doc.fontSize(11);
+      recommendations.forEach(r => {
+        doc.text(`• ${r}`, { bulletIndent: 10 });
+      });
+      doc.moveDown();
     }
 
     // Question Responses by Category
@@ -150,20 +172,8 @@ router.get('/assessment/:id/pdf', authenticateToken, async (req, res) => {
       
       questions.forEach((q, index) => {
         doc.fontSize(11).text(`${index + 1}. ${q.question}`, { bold: true });
-        
-        let answerText = 'No response';
-        if (q.answer) {
-          const answer = typeof q.answer === 'string' ? JSON.parse(q.answer) : q.answer;
-          if (Array.isArray(answer)) {
-            answerText = answer.join(', ');
-          } else if (typeof answer === 'boolean') {
-            answerText = answer ? 'Yes' : 'No';
-          } else {
-            answerText = String(answer);
-          }
-        }
-        
-        doc.text(`Answer: ${answerText}`);
+
+        doc.text(`Answer: ${toAnswerText(q.answer)}`);
         doc.moveDown(0.5);
       });
       
@@ -178,7 +188,13 @@ router.get('/assessment/:id/pdf', authenticateToken, async (req, res) => {
     doc.end();
   } catch (error) {
     console.error('Generate PDF error:', error);
-    res.status(500).json({ error: 'Failed to generate PDF report' });
+    // Once doc.pipe(res) has run the headers are already sent, so res.json()
+    // throws ERR_STREAM_WRITE_AFTER_END and takes the process down with it.
+    if (res.headersSent) {
+      res.end();
+    } else {
+      res.status(500).json({ error: 'Failed to generate PDF report' });
+    }
   }
 });
 
@@ -249,27 +265,21 @@ router.get('/assessment/:id/excel', authenticateToken, async (req, res) => {
     summarySheet.addRow({ field: 'Overall Score', value: `${assessment.overall_score || 'N/A'}%` });
 
     // Add strengths
-    if (assessment.strengths) {
-      const strengths = JSON.parse(assessment.strengths);
-      if (Array.isArray(strengths) && strengths.length > 0) {
-        summarySheet.addRow({ field: 'Strengths', value: strengths.join('; ') });
-      }
+    const strengths = toArray(assessment.strengths);
+    if (strengths.length > 0) {
+      summarySheet.addRow({ field: 'Strengths', value: strengths.join('; ') });
     }
 
     // Add weaknesses
-    if (assessment.weaknesses) {
-      const weaknesses = JSON.parse(assessment.weaknesses);
-      if (Array.isArray(weaknesses) && weaknesses.length > 0) {
-        summarySheet.addRow({ field: 'Weaknesses', value: weaknesses.join('; ') });
-      }
+    const weaknesses = toArray(assessment.weaknesses);
+    if (weaknesses.length > 0) {
+      summarySheet.addRow({ field: 'Weaknesses', value: weaknesses.join('; ') });
     }
 
     // Add recommendations
-    if (assessment.recommendations) {
-      const recommendations = JSON.parse(assessment.recommendations);
-      if (Array.isArray(recommendations) && recommendations.length > 0) {
-        summarySheet.addRow({ field: 'Recommendations', value: recommendations.join('; ') });
-      }
+    const recommendations = toArray(assessment.recommendations);
+    if (recommendations.length > 0) {
+      summarySheet.addRow({ field: 'Recommendations', value: recommendations.join('; ') });
     }
 
     // Style header row
@@ -295,18 +305,6 @@ router.get('/assessment/:id/excel', authenticateToken, async (req, res) => {
     ];
 
     responsesResult.rows.forEach((row, index) => {
-      let answerText = 'No response';
-      if (row.answer) {
-        const answer = typeof row.answer === 'string' ? JSON.parse(row.answer) : row.answer;
-        if (Array.isArray(answer)) {
-          answerText = answer.join(', ');
-        } else if (typeof answer === 'boolean') {
-          answerText = answer ? 'Yes' : 'No';
-        } else {
-          answerText = String(answer);
-        }
-      }
-
       responsesSheet.addRow({
         order: index + 1,
         category: row.category,
@@ -314,7 +312,7 @@ router.get('/assessment/:id/excel', authenticateToken, async (req, res) => {
         type: row.type,
         weight: row.weight,
         risk_impact: row.risk_impact,
-        answer: answerText
+        answer: toAnswerText(row.answer),
       });
     });
 
@@ -347,7 +345,11 @@ router.get('/assessment/:id/excel', authenticateToken, async (req, res) => {
     res.end();
   } catch (error) {
     console.error('Generate Excel error:', error);
-    res.status(500).json({ error: 'Failed to generate Excel report' });
+    if (res.headersSent) {
+      res.end();
+    } else {
+      res.status(500).json({ error: 'Failed to generate Excel report' });
+    }
   }
 });
 
@@ -457,7 +459,11 @@ router.get('/vendors/summary/excel', authenticateToken, requireRole('admin', 'tp
     res.end();
   } catch (error) {
     console.error('Generate vendor summary error:', error);
-    res.status(500).json({ error: 'Failed to generate vendor summary report' });
+    if (res.headersSent) {
+      res.end();
+    } else {
+      res.status(500).json({ error: 'Failed to generate vendor summary report' });
+    }
   }
 });
 

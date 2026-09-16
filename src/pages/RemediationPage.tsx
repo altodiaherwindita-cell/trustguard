@@ -50,7 +50,7 @@ export default function RemediationPage({ assessmentId }: RemediationPageProps) 
 
   const [formData, setFormData] = useState<CreateRemediationItem>({
     assessment_id: '',
-    finding: '',
+    title: '',
     description: '',
     priority: 'medium',
     due_date: '',
@@ -104,7 +104,7 @@ export default function RemediationPage({ assessmentId }: RemediationPageProps) 
       });
       setFormData({
         assessment_id: '',
-        finding: '',
+        title: '',
         description: '',
         priority: 'medium',
         due_date: '',
@@ -219,7 +219,7 @@ export default function RemediationPage({ assessmentId }: RemediationPageProps) 
     switch (status) {
       case 'open':
         return <Badge variant="secondary"><AlertCircle className="h-3 w-3 mr-1" />Open</Badge>;
-      case 'in_progress':
+      case 'in-progress':
         return <Badge className="bg-blue-500"><Clock className="h-3 w-3 mr-1" />In Progress</Badge>;
       case 'completed':
         return <Badge className="bg-green-500"><CheckCircle className="h-3 w-3 mr-1" />Completed</Badge>;
@@ -238,19 +238,23 @@ export default function RemediationPage({ assessmentId }: RemediationPageProps) 
   const filteredRemediations = remediations.filter(r => {
     // Vendors only see items assigned to them or created by them
     if (isVendor && !userRoles.includes('admin')) {
-      return r.assigned_to === userId || r.created_by === userId;
+      return r.assigned_to === userId;
     }
     return true;
   });
 
+  // A closed/completed/verified item is never overdue; the earlier `closed`
+  // guard made the later comparison dead code.
+  const isOverdue = (r: RemediationItem) =>
+    !!r.due_date &&
+    r.status !== 'completed' && r.status !== 'verified' && r.status !== 'closed' &&
+    new Date(r.due_date) < new Date();
+
   const stats = {
     open: remediations.filter(r => r.status === 'open').length,
-    inProgress: remediations.filter(r => r.status === 'in_progress').length,
+    inProgress: remediations.filter(r => r.status === 'in-progress').length,
     completed: remediations.filter(r => r.status === 'completed').length,
-    overdue: remediations.filter(r => {
-      if (!r.due_date || r.status === 'closed') return false;
-      return new Date(r.due_date) < new Date() && r.status !== 'completed' && r.status !== 'verified' && r.status !== 'closed';
-    }).length,
+    overdue: remediations.filter(isOverdue).length,
   };
 
   return (
@@ -308,7 +312,7 @@ export default function RemediationPage({ assessmentId }: RemediationPageProps) 
         <TabsList>
           <TabsTrigger value="all">All ({remediations.length})</TabsTrigger>
           <TabsTrigger value="open">Open ({stats.open})</TabsTrigger>
-          <TabsTrigger value="in_progress">In Progress ({stats.inProgress})</TabsTrigger>
+          <TabsTrigger value="in-progress">In Progress ({stats.inProgress})</TabsTrigger>
           <TabsTrigger value="completed">Completed ({stats.completed})</TabsTrigger>
           <TabsTrigger value="overdue">Overdue ({stats.overdue})</TabsTrigger>
         </TabsList>
@@ -337,9 +341,9 @@ export default function RemediationPage({ assessmentId }: RemediationPageProps) 
             getStatusBadge={getStatusBadge}
           />
         </TabsContent>
-        <TabsContent value="in_progress" className="mt-4">
+        <TabsContent value="in-progress" className="mt-4">
           <RemediationTable 
-            remediations={filteredRemediations.filter(r => r.status === 'in_progress')}
+            remediations={filteredRemediations.filter(r => r.status === 'in-progress')}
             loading={loading}
             onViewDetails={(r) => {
               setSelectedRemediation(r);
@@ -363,10 +367,7 @@ export default function RemediationPage({ assessmentId }: RemediationPageProps) 
         </TabsContent>
         <TabsContent value="overdue" className="mt-4">
           <RemediationTable 
-            remediations={filteredRemediations.filter(r => {
-              if (!r.due_date || r.status === 'closed') return false;
-              return new Date(r.due_date) < new Date() && r.status !== 'completed' && r.status !== 'verified' && r.status !== 'closed';
-            })}
+            remediations={filteredRemediations.filter(isOverdue)}
             loading={loading}
             onViewDetails={(r) => {
               setSelectedRemediation(r);
@@ -390,12 +391,12 @@ export default function RemediationPage({ assessmentId }: RemediationPageProps) 
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="finding">Finding Title</Label>
+                <Label htmlFor="title">Finding Title</Label>
                 <Input
-                  id="finding"
+                  id="title"
                   placeholder="Brief title for this finding"
-                  value={formData.finding}
-                  onChange={(e) => setFormData({ ...formData, finding: e.target.value })}
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
@@ -440,7 +441,7 @@ export default function RemediationPage({ assessmentId }: RemediationPageProps) 
             <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreate} disabled={!formData.finding || !formData.description}>
+            <Button onClick={handleCreate} disabled={!formData.title || !formData.description}>
               Create
             </Button>
           </DialogFooter>
@@ -451,7 +452,7 @@ export default function RemediationPage({ assessmentId }: RemediationPageProps) 
       <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{selectedRemediation?.finding}</DialogTitle>
+            <DialogTitle>{selectedRemediation?.title}</DialogTitle>
             <DialogDescription>
               Remediation details and activity
             </DialogDescription>
@@ -469,7 +470,7 @@ export default function RemediationPage({ assessmentId }: RemediationPageProps) 
                 </div>
                 <div>
                   <p className="text-sm font-medium">Assigned To</p>
-                  <p className="text-sm">{selectedRemediation.assigned_to_name || selectedRemediation.assigned_to_email || 'Unassigned'}</p>
+                  <p className="text-sm">{selectedRemediation.assigned_to_email || 'Unassigned'}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium">Due Date</p>
@@ -488,7 +489,7 @@ export default function RemediationPage({ assessmentId }: RemediationPageProps) 
               <div>
                 <p className="text-sm font-medium mb-2">Comments</p>
                 <div className="space-y-2 max-h-48 overflow-y-auto mb-4">
-                  {selectedRemediation.comments.length === 0 ? (
+                  {!selectedRemediation.comments?.length ? (
                     <p className="text-sm text-muted-foreground">No comments yet</p>
                   ) : (
                     selectedRemediation.comments.map((comment) => (
@@ -526,7 +527,7 @@ export default function RemediationPage({ assessmentId }: RemediationPageProps) 
 
               {/* Action Buttons */}
               <div className="flex gap-2 flex-wrap">
-                {isVendor && selectedRemediation.status === 'in_progress' && (
+                {isVendor && selectedRemediation.status === 'in-progress' && (
                   <Button onClick={() => handleComplete(selectedRemediation.id)}>
                     <CheckCircle className="mr-2 h-4 w-4" />
                     Mark Complete
@@ -599,13 +600,13 @@ function RemediationTable({
               <TableRow key={item.id}>
                 <TableCell>
                   <div>
-                    <p className="font-medium">{item.finding}</p>
+                    <p className="font-medium">{item.title}</p>
                     <p className="text-sm text-muted-foreground truncate max-w-md">{item.description}</p>
                   </div>
                 </TableCell>
                 <TableCell>{getPriorityBadge(item.priority)}</TableCell>
                 <TableCell>{getStatusBadge(item.status)}</TableCell>
-                <TableCell>{item.assigned_to_name || item.assigned_to_email || 'Unassigned'}</TableCell>
+                <TableCell>{item.assigned_to_email || 'Unassigned'}</TableCell>
                 <TableCell>
                   {item.due_date ? (
                     <span className={new Date(item.due_date) < new Date() && item.status !== 'closed' ? 'text-red-500' : ''}>
