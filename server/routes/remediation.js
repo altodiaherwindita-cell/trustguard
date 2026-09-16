@@ -80,9 +80,10 @@ router.post('/', authenticateToken, requireRole('admin', 'tprm_analyst'), async 
       vendor_contact
     } = req.body;
 
-    // Validate required fields
-    if (!assessment_id || !title) {
-      return res.status(400).json({ error: 'assessment_id and title are required' });
+    // Validate required fields. description is NOT NULL in the schema with no
+    // default, so reject it here rather than letting the insert 500.
+    if (!assessment_id || !title || !description) {
+      return res.status(400).json({ error: 'assessment_id, title, and description are required' });
     }
 
     // vendor_id is fully determined by the assessment (assessments.vendor_id is

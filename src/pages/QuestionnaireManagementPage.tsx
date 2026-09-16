@@ -222,7 +222,7 @@ export function QuestionnaireManagementPage() {
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
                 <Select value={formData.category} onValueChange={(v) => setFormData({ ...formData, category: v })}>
-                  <SelectTrigger>
+                  <SelectTrigger id="category">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -235,7 +235,7 @@ export function QuestionnaireManagementPage() {
               <div className="space-y-2">
                 <Label htmlFor="type">Question Type</Label>
                 <Select value={formData.type} onValueChange={(v) => setFormData({ ...formData, type: v })}>
-                  <SelectTrigger>
+                  <SelectTrigger id="type">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -285,7 +285,7 @@ export function QuestionnaireManagementPage() {
               <div className="space-y-2">
                 <Label htmlFor="risk_impact">Risk Impact</Label>
                 <Select value={formData.risk_impact} onValueChange={(v) => setFormData({ ...formData, risk_impact: v })}>
-                  <SelectTrigger>
+                  <SelectTrigger id="risk_impact">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

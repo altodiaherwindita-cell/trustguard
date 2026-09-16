@@ -57,18 +57,14 @@ export function Dashboard() {
           setRecent(vs.slice(0, 5));
           setPending(as.filter(a => a.status !== 'reviewed').slice(0, 6));
         } else {
-          // Vendor: find their vendor + assessment
-          const vendorsResult = await vendorsApi.getAll();
+          // Vendor: /api/vendors and /api/assessments are TPRM-only, so use the
+          // owner-scoped lists the server already exposes.
+          const vendorsResult = await vendorsApi.getMine();
           const vs = vendorsResult.data || [];
-          // ponytail: `/api/vendors` is TPRM-only server-side, so this branch only
-          // reaches here if the route guard changes; owner_user_id is the join the
-          // server uses in /my-vendors. Swap to vendorsApi.getMine() when it exists.
-          const vendor = vs.find(v => v.owner_user_id === user?.id);
+          const vendor = vs[0];
           if (vendor) {
-            const assessmentsResult = await assessmentsApi.getAll();
-            const as = assessmentsResult.data || [];
-            const vendorAssessments = as
-              .filter(a => a.vendor_id === vendor.id)
+            const assessmentsResult = await assessmentsApi.getMine();
+            const vendorAssessments = (assessmentsResult.data || [])
               .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
             setVendorAssessment({ vendor, assessment: vendorAssessments[0] || null });
           }
@@ -119,9 +115,11 @@ export function Dashboard() {
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground mt-1">Monitor and manage your third-party risk assessments</p>
         </div>
-        <Link to="/vendors">
-          <Button className="gap-2 bg-gradient-primary hover:opacity-90"><Building2 className="w-4 h-4" /> Add Vendor</Button>
-        </Link>
+        {isTPRM && (
+          <Link to="/vendors">
+            <Button className="gap-2 bg-gradient-primary hover:opacity-90"><Building2 className="w-4 h-4" /> Add Vendor</Button>
+          </Link>
+        )}
       </motion.div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">

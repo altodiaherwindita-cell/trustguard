@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import { evidenceApi, type EvidenceDocument, assessmentsApi } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -52,6 +53,9 @@ export default function EvidenceManagementPage({ assessmentId: initialAssessment
   const [assessments, setAssessments] = useState<Array<{ id: string; vendor_name: string; status: string }>>([]);
   const [assessmentsLoading, setAssessmentsLoading] = useState(false);
   const { toast } = useToast();
+  // From the auth context rather than the localStorage copy below: that state is
+  // still empty on the first render, and loadAssessments runs from an effect.
+  const { isTPRM } = useAuth();
 
   useEffect(() => {
     const storedUser = localStorage.getItem('auth_user');
@@ -78,7 +82,8 @@ export default function EvidenceManagementPage({ assessmentId: initialAssessment
   const loadAssessments = async () => {
     setAssessmentsLoading(true);
     try {
-      const result = await assessmentsApi.getAll();
+      // /api/assessments is TPRM-only; vendors get their own owner-scoped list.
+      const result = isTPRM ? await assessmentsApi.getAll() : await assessmentsApi.getMine();
       if (result.data) {
         setAssessments(result.data.map(a => ({
           id: a.id,

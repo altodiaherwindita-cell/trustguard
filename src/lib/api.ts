@@ -172,6 +172,18 @@ export const vendorsApi = {
     return { error: result.error, message: result.message };
   },
 
+  /** Vendors owned by the caller. The only vendor list a vendor role may read. */
+  async getMine(): Promise<ApiResponse<Vendor[]>> {
+    const result = await request<{ vendors: Vendor[] }>('/api/vendors/my-vendors');
+    if (result.data?.vendors) {
+      return { data: result.data.vendors };
+    }
+    if (result.error) {
+      return { data: [] };
+    }
+    return { error: result.error, message: result.message };
+  },
+
   async getById(id: string): Promise<ApiResponse<Vendor>> {
     const result = await request<{ vendor: Vendor }>(`/api/vendors/${id}`);
     if (result.data) {
@@ -240,6 +252,20 @@ export const assessmentsApi = {
       return { data: result.data.assessments };
     }
     // Handle case where result.data exists but assessments is missing, or return empty array on error
+    if (result.error) {
+      return { data: [] };
+    }
+    return { error: result.error, message: result.message };
+  },
+
+  /** Assessments for vendors the caller owns. The vendor-safe list. */
+  async getMine(): Promise<ApiResponse<(Assessment & { vendor_name?: string })[]>> {
+    const result = await request<{ assessments: (Assessment & { vendor_name?: string })[] }>(
+      '/api/assessments/my-assessments',
+    );
+    if (result.data?.assessments) {
+      return { data: result.data.assessments };
+    }
     if (result.error) {
       return { data: [] };
     }

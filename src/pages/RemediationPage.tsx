@@ -414,7 +414,7 @@ export default function RemediationPage({ assessmentId }: RemediationPageProps) 
                   value={formData.assessment_id || undefined}
                   onValueChange={(val) => setFormData({ ...formData, assessment_id: val })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="assessment">
                     <SelectValue placeholder="Select the assessment this finding belongs to" />
                   </SelectTrigger>
                   <SelectContent>
@@ -443,7 +443,7 @@ export default function RemediationPage({ assessmentId }: RemediationPageProps) 
                   value={formData.priority}
                   onValueChange={(val) => setFormData({ ...formData, priority: val as any })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="priority">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

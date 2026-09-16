@@ -155,9 +155,10 @@ export function AppSidebar() {
           );
         })}
 
-        {/* Quick Actions Section */}
+        {/* Quick Actions Section. TPRM-only: every target route is TPRM-gated, so
+            showing these to a vendor is three buttons that bounce to /. */}
         <AnimatePresence mode="wait">
-          {!collapsed && (
+          {!collapsed && isTPRM && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
@@ -257,13 +258,17 @@ export function AppSidebar() {
                   className="animate-pulse-ring"
                   style={{ filter: 'drop-shadow(0 0 8px hsl(var(--primary)))', transformOrigin: '40px 40px' }}
                 />
+                {/* Gradient defs must live inside the <svg>: url(#id) only
+                    resolves within the same SVG document. Outside it the
+                    browser renders the elements as unknown HTML and the
+                    progress ring's stroke resolves to nothing. */}
+                <defs>
+                  <linearGradient id="pulse-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="hsl(var(--primary))" />
+                    <stop offset="100%" stopColor="hsl(var(--primary) / 0.6)" />
+                  </linearGradient>
+                </defs>
               </svg>
-              <defs>
-                <linearGradient id="pulse-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="hsl(var(--primary))" />
-                  <stop offset="100%" stopColor="hsl(var(--primary) / 0.6)" />
-                </linearGradient>
-              </defs>
 
               {/* Center content */}
               <div className="absolute inset-0 flex items-center justify-center">

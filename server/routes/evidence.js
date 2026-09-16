@@ -131,6 +131,32 @@ router.post('/', authenticateToken, upload.single('file'), async (req, res) => {
   }
 });
 
+// Get all evidence across assessments. The Evidence page renders its
+// assessment picker at this path, before any assessment is chosen.
+router.get('/', authenticateToken, async (req, res) => {
+  try {
+    const hasTPRMRole = req.userRole === 'admin' || req.userRole === 'tprm_analyst';
+
+    const result = await pool.query(
+      `SELECT e.*, u.full_name as uploaded_by_name, u.email as uploaded_by_email,
+              v.full_name as validated_by_name
+       FROM evidence_documents e
+       LEFT JOIN users u ON e.uploaded_by = u.id
+       LEFT JOIN users v ON e.validated_by = v.id
+       JOIN assessments a ON e.assessment_id = a.id
+       JOIN vendors vd ON a.vendor_id = vd.id
+       WHERE $1 = true OR vd.owner_user_id = $2
+       ORDER BY e.created_at DESC`,
+      [hasTPRMRole, req.userId]
+    );
+
+    res.json({ evidence: result.rows });
+  } catch (error) {
+    console.error('Get all evidence error:', error);
+    res.status(500).json({ error: 'Failed to get evidence' });
+  }
+});
+
 // Get all evidence for an assessment
 router.get('/:assessmentId', authenticateToken, async (req, res) => {
   try {
