@@ -361,17 +361,25 @@ export const questionsApi = {
   },
 
   async create(question: Omit<Question, 'id'>): Promise<ApiResponse<Question>> {
-    return request<Question>('/api/questions', {
+    const result = await request<{ data: Question }>('/api/questions', {
       method: 'POST',
       body: JSON.stringify(question),
     });
+    if (result.data?.data) {
+      return { data: result.data.data };
+    }
+    return { error: result.error, message: result.message };
   },
 
   async update(id: string, question: Partial<Question>): Promise<ApiResponse<Question>> {
-    return request<Question>(`/api/questions/${id}`, {
+    const result = await request<{ data: Question }>(`/api/questions/${id}`, {
       method: 'PUT',
       body: JSON.stringify(question),
     });
+    if (result.data?.data) {
+      return { data: result.data.data };
+    }
+    return { error: result.error, message: result.message };
   },
 
   async delete(id: string): Promise<ApiResponse<void>> {

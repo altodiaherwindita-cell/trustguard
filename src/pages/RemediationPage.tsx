@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { remediationApi, type RemediationItem, type CreateRemediationItem } from '@/lib/api';
+import { remediationApi, assessmentsApi, type Assessment, type RemediationItem, type CreateRemediationItem } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -57,6 +57,7 @@ export default function RemediationPage({ assessmentId }: RemediationPageProps) 
   });
 
   const [commentText, setCommentText] = useState('');
+  const [assessments, setAssessments] = useState<Assessment[]>([]);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('auth_user');
@@ -72,16 +73,24 @@ export default function RemediationPage({ assessmentId }: RemediationPageProps) 
   }, []);
 
   useEffect(() => {
-    if (assessmentId) {
-      loadRemediations();
-    }
+    loadRemediations();
+    // With no assessment in scope, creating an item needs the assessment picked
+    // explicitly, so load the options for the dialog.
+    if (!assessmentId) loadAssessments();
   }, [assessmentId]);
 
+  const loadAssessments = async () => {
+    const result = await assessmentsApi.getAll();
+    if (result.data) setAssessments(result.data);
+  };
+
   const loadRemediations = async () => {
-    if (!assessmentId) return;
-    
     setLoading(true);
-    const result = await remediationApi.getByAssessment(assessmentId);
+    // Scoped to one assessment when embedded in the questionnaire flow;
+    // the /remediation route renders with no assessmentId, so list all.
+    const result = assessmentId
+      ? await remediationApi.getByAssessment(assessmentId)
+      : await remediationApi.getAll();
     if (result.data) {
       setRemediations(result.data);
     } else {
@@ -95,7 +104,16 @@ export default function RemediationPage({ assessmentId }: RemediationPageProps) 
   };
 
   const handleCreate = async () => {
-    const itemToCreate = { ...formData, assessment_id: assessmentId || '' };
+    // Prefer the prop when embedded; otherwise use the dialog's selection.
+    const itemToCreate = { ...formData, assessment_id: assessmentId || formData.assessment_id };
+    if (!itemToCreate.assessment_id) {
+      toast({
+        title: 'Error',
+        description: 'Select an assessment for this finding',
+        variant: 'destructive',
+      });
+      return;
+    }
     const result = await remediationApi.create(itemToCreate);
     if (result.data) {
       toast({
@@ -389,6 +407,26 @@ export default function RemediationPage({ assessmentId }: RemediationPageProps) 
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {!assessmentId && (
+              <div className="space-y-2">
+                <Label htmlFor="assessment">Assessment</Label>
+                <Select
+                  value={formData.assessment_id || undefined}
+                  onValueChange={(val) => setFormData({ ...formData, assessment_id: val })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select the assessment this finding belongs to" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {assessments.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        {a.vendor_name || 'Unknown vendor'} — {a.status}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="title">Finding Title</Label>

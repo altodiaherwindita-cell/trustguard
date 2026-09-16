@@ -29,21 +29,33 @@ router.get('/:assessmentId', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
+    const canSeeInternal = req.userRole === 'admin' || req.userRole === 'tprm_analyst';
+
     const result = await pool.query(
-      `SELECT r.*, v.name as vendor_name, u.email as assigned_to_email
+      `SELECT r.*, v.name as vendor_name, u.email as assigned_to_email,
+              COALESCE(c.comments, '[]'::json) as comments
        FROM remediation_items r
        JOIN vendors v ON r.vendor_id = v.id
        LEFT JOIN users u ON r.assigned_to = u.id
-       WHERE r.assessment_id = $1
-       ORDER BY 
-         CASE r.priority 
-           WHEN 'critical' THEN 1 
-           WHEN 'high' THEN 2 
-           WHEN 'medium' THEN 3 
-           WHEN 'low' THEN 4 
+       LEFT JOIN LATERAL (
+         SELECT json_agg(json_build_object(
+                  'id', rc.id, 'user_id', rc.user_id, 'user_name', rc.user_name,
+                  'comment', rc.comment, 'created_at', rc.created_at
+                ) ORDER BY rc.created_at) as comments
+         FROM remediation_comments rc
+         WHERE rc.remediation_id = r.id
+           AND (rc.is_internal = false OR $1 = true)
+       ) c ON true
+       WHERE r.assessment_id = $2
+       ORDER BY
+         CASE r.priority
+           WHEN 'critical' THEN 1
+           WHEN 'high' THEN 2
+           WHEN 'medium' THEN 3
+           WHEN 'low' THEN 4
          END,
          r.due_date ASC`,
-      [assessmentId]
+      [canSeeInternal, assessmentId]
     );
 
     res.json({ remediation: result.rows });
@@ -56,23 +68,36 @@ router.get('/:assessmentId', authenticateToken, async (req, res) => {
 // Create remediation item (TPRM only)
 router.post('/', authenticateToken, requireRole('admin', 'tprm_analyst'), async (req, res) => {
   try {
-    const { 
-      assessment_id, 
-      vendor_id, 
-      question_id, 
-      title, 
-      description, 
-      risk_level, 
-      priority, 
-      due_date, 
+    const {
+      assessment_id,
+      question_id,
+      title,
+      description,
+      risk_level,
+      priority,
+      due_date,
       assigned_to,
       vendor_contact
     } = req.body;
 
     // Validate required fields
-    if (!assessment_id || !vendor_id || !title) {
-      return res.status(400).json({ error: 'assessment_id, vendor_id, and title are required' });
+    if (!assessment_id || !title) {
+      return res.status(400).json({ error: 'assessment_id and title are required' });
     }
+
+    // vendor_id is fully determined by the assessment (assessments.vendor_id is
+    // NOT NULL), so derive it rather than trusting a second client-supplied id
+    // that could name a different vendor.
+    const assessmentResult = await pool.query(
+      'SELECT vendor_id FROM assessments WHERE id = $1',
+      [assessment_id]
+    );
+
+    if (assessmentResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Assessment not found' });
+    }
+
+    const vendor_id = assessmentResult.rows[0].vendor_id;
 
     const result = await pool.query(
       `INSERT INTO remediation_items 
@@ -86,8 +111,10 @@ router.post('/', authenticateToken, requireRole('admin', 'tprm_analyst'), async 
         question_id || null,
         title,
         description,
-        risk_level,
-        priority,
+        // risk_level is NOT NULL with no default, and the create form only
+        // collects priority, so fall back rather than 500 on an omitted field.
+        risk_level || 'medium',
+        priority || 'medium',
         due_date || null,
         assigned_to || null,
         vendor_contact || null
@@ -348,16 +375,94 @@ router.patch('/:id/close', authenticateToken, requireRole('admin', 'tprm_analyst
   }
 });
 
+// Add a comment to a remediation item
+router.post('/:id/comment', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { comment, is_internal } = req.body;
+
+    if (!comment || !comment.trim()) {
+      return res.status(400).json({ error: 'comment is required' });
+    }
+
+    // Verify permissions - same ownership rule as the other item routes
+    const checkResult = await pool.query(
+      `SELECT r.*, v.owner_user_id FROM remediation_items r
+       JOIN assessments a ON r.assessment_id = a.id
+       JOIN vendors v ON a.vendor_id = v.id
+       WHERE r.id = $1`,
+      [id]
+    );
+
+    if (checkResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Remediation item not found' });
+    }
+
+    const item = checkResult.rows[0];
+    const isOwner = item.owner_user_id === req.userId;
+    const hasTPRMRole = req.userRole === 'admin' || req.userRole === 'tprm_analyst';
+
+    if (!isOwner && !hasTPRMRole) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Vendors cannot post internal notes - default them to vendor-visible.
+    const internal = hasTPRMRole ? is_internal !== false : false;
+
+    await pool.query(
+      `INSERT INTO remediation_comments (remediation_id, user_id, user_name, user_email, comment, is_internal)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [id, req.userId, req.user?.full_name || null, req.userEmail || null, comment.trim(), internal]
+    );
+
+    // Return the item with its (visibility-filtered) comments so the client can
+    // refresh the detail dialog from the response.
+    const result = await pool.query(
+      `SELECT r.*, COALESCE(c.comments, '[]'::json) as comments
+       FROM remediation_items r
+       LEFT JOIN LATERAL (
+         SELECT json_agg(json_build_object(
+                  'id', rc.id, 'user_id', rc.user_id, 'user_name', rc.user_name,
+                  'comment', rc.comment, 'created_at', rc.created_at
+                ) ORDER BY rc.created_at) as comments
+         FROM remediation_comments rc
+         WHERE rc.remediation_id = r.id
+           AND (rc.is_internal = false OR $2 = true)
+       ) c ON true
+       WHERE r.id = $1`,
+      [id, hasTPRMRole]
+    );
+
+    res.status(201).json({
+      remediation: result.rows[0],
+      message: 'Comment added successfully'
+    });
+  } catch (error) {
+    console.error('Add remediation comment error:', error);
+    res.status(500).json({ error: 'Failed to add comment' });
+  }
+});
+
 // Get all remediation items across assessments (TPRM only)
 router.get('/', authenticateToken, requireRole('admin', 'tprm_analyst'), async (req, res) => {
   try {
     const { status, priority, vendorId, limit = 100, offset = 0 } = req.query;
 
+    // requireRole keeps this TPRM-only, so internal comments are always visible.
     let query = `
-      SELECT r.*, v.name as vendor_name, u.email as assigned_to_email
+      SELECT r.*, v.name as vendor_name, u.email as assigned_to_email,
+             COALESCE(c.comments, '[]'::json) as comments
       FROM remediation_items r
       JOIN vendors v ON r.vendor_id = v.id
       LEFT JOIN users u ON r.assigned_to = u.id
+      LEFT JOIN LATERAL (
+        SELECT json_agg(json_build_object(
+                 'id', rc.id, 'user_id', rc.user_id, 'user_name', rc.user_name,
+                 'comment', rc.comment, 'created_at', rc.created_at
+               ) ORDER BY rc.created_at) as comments
+        FROM remediation_comments rc
+        WHERE rc.remediation_id = r.id
+      ) c ON true
       WHERE 1=1
     `;
 
