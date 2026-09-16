@@ -15,6 +15,7 @@ import auditLogRoutes from './routes/audit-logs.js';
 import remediationRoutes from './routes/remediation.js';
 import notificationRoutes from './routes/notifications.js';
 import reportRoutes from './routes/reports.js';
+import aiRoutes from './routes/ai.js';
 import { checkSessionActivity } from './middleware/auth.js';
 import { initializeScheduler } from './services/scheduler.js';
 
@@ -115,6 +116,7 @@ app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/remediation', remediationRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/ai', aiRoutes);
 
 // Note: Session activity check is now handled within authenticateToken middleware
 // to avoid interfering with public endpoints and routes that have their own auth logic

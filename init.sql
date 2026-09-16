@@ -79,6 +79,7 @@ CREATE TABLE assessments (
   weaknesses JSONB,
   recommendations JSONB,
   category_scores JSONB,
+  question_scores JSONB,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   submitted_at TIMESTAMPTZ,
   reviewed_at TIMESTAMPTZ

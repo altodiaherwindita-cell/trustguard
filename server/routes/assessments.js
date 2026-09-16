@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { pool } from '../index.js';
+import { calculateRiskScore } from '../services/riskScoring.js';
 
 const router = Router();
 
@@ -246,15 +247,55 @@ router.post('/:id/submit', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    const result = await pool.query(
-      `UPDATE assessments
-       SET status = 'submitted', submitted_at = now()
-       WHERE id = $1
-       RETURNING *`,
-      [assessmentId]
-    );
+    // Score BEFORE marking submitted so a scoring failure can't leave a
+    // submitted-but-unscored row.
+    try {
+      const questionsResult = await pool.query(
+        'SELECT id, category, question, type, options, weight, risk_impact FROM questions ORDER BY display_order, id'
+      );
+      const responsesResult = await pool.query(
+        'SELECT question_id, answer FROM assessment_responses WHERE assessment_id = $1',
+        [assessmentId]
+      );
+      const answers = {};
+      for (const r of responsesResult.rows) {
+        answers[r.question_id] = r.answer;
+      }
+      const questions = questionsResult.rows.map((q) => ({ ...q, riskImpact: q.risk_impact }));
+      const result = calculateRiskScore(questions, answers);
 
-    res.json({ assessment: result.rows[0], message: 'Assessment submitted successfully' });
+      const updated = await pool.query(
+        `UPDATE assessments
+         SET status = 'submitted',
+             submitted_at = now(),
+             risk_score = $2,
+             risk_level = $3,
+             overall_score = $4,
+             category_scores = $5,
+             question_scores = $6,
+             strengths = $7,
+             weaknesses = $8,
+             recommendations = $9
+         WHERE id = $1
+         RETURNING *`,
+        [
+          assessmentId,
+          result.riskScore,
+          result.riskLevel,
+          result.overallScore,
+          JSON.stringify(result.categoryScores),
+          JSON.stringify(result.questionScores),
+          JSON.stringify(result.strengths),
+          JSON.stringify(result.weaknesses),
+          JSON.stringify(result.recommendations),
+        ]
+      );
+
+      res.json({ assessment: updated.rows[0], message: 'Assessment submitted successfully' });
+    } catch (scoringError) {
+      console.error('Score assessment error:', scoringError);
+      res.status(500).json({ error: 'Failed to score assessment' });
+    }
   } catch (error) {
     console.error('Submit assessment error:', error);
     res.status(500).json({ error: 'Failed to submit assessment' });

@@ -20,7 +20,6 @@ interface SettingsState {
   smtpSecure: boolean;
   aiEnabled: boolean;
   aiModel: string;
-  aiApiKey: string;
   aiTemperature: number;
 }
 
@@ -37,7 +36,6 @@ export function SettingsPage() {
     smtpSecure: true,
     aiEnabled: true,
     aiModel: 'gpt-4',
-    aiApiKey: '',
     aiTemperature: 0.7,
   });
   const [savingSettings, setSavingSettings] = useState(false);
@@ -247,9 +245,13 @@ export function SettingsPage() {
                 id="aiApiKey"
                 type="password"
                 placeholder="sk-..."
-                value={settings.aiApiKey}
-                onChange={(e) => setSettings({ ...settings, aiApiKey: e.target.value })}
+                disabled
+                value=""
+                readOnly
               />
+              <p className="text-xs text-muted-foreground">
+                The API key is configured server-side via the AI_API_KEY environment variable and cannot be set here.
+              </p>
             </div>
           </div>
           <div className="space-y-2">

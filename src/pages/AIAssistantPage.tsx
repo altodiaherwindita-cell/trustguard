@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { aiApi } from '@/lib/api';
 import {
   Bot,
   Send,
@@ -40,6 +41,7 @@ export function AIAssistantPage() {
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [notConfigured, setNotConfigured] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -49,7 +51,7 @@ export function AIAssistantPage() {
   }, [messages]);
 
   const handleSend = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || isTyping) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -58,41 +60,28 @@ export function AIAssistantPage() {
       timestamp: new Date(),
     };
 
+    const outgoing = input;
+    const history = messages.map(({ role, content }) => ({ role, content }));
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsTyping(true);
+    setNotConfigured(false);
 
-    // Simulate AI response
-    setTimeout(() => {
-      const responses: Record<string, string> = {
-        'analyze': "Based on my analysis of CloudSecure Inc., they demonstrate a strong security posture with a risk score of 25 (Low Risk). Key strengths include:\n\n• **Data Encryption**: TLS 1.3 for data in transit and AES-256 for data at rest\n• **Access Controls**: MFA enabled with monthly access reviews\n• **Compliance**: SOC 2 Type II and ISO 27001 certified\n\nRecommendation: Continue annual assessments and consider them for expanded services.",
-        'vulnerabilities': "Looking at your vendor portfolio, I've identified the following common vulnerabilities:\n\n1. **Incident Response (32% of vendors)**: Delayed response times exceeding 24 hours\n2. **Access Management (28% of vendors)**: Infrequent privilege reviews\n3. **Encryption Standards (15% of vendors)**: Using outdated TLS versions\n\nI recommend prioritizing remediation efforts on incident response procedures.",
-        'remediation': "For high-risk vendors, I recommend the following remediation steps:\n\n1. **Immediate Actions**:\n   - Request updated security documentation\n   - Schedule a call to discuss findings\n   - Set a 30-day improvement deadline\n\n2. **Short-term (30-60 days)**:\n   - Implement additional monitoring\n   - Require evidence of security improvements\n\n3. **Long-term**:\n   - Consider alternative vendors if no improvement\n   - Increase assessment frequency",
-        'summary': "Here's a summary of your pending assessments:\n\n📋 **Total Pending**: 23 assessments\n\n**By Status**:\n• In Progress: 12\n• Awaiting Response: 8\n• Under Review: 3\n\n**By Risk Level**:\n• High Priority: 5 (due this week)\n• Medium Priority: 10\n• Low Priority: 8\n\nShall I help prioritize which assessments to review first?",
-      };
+    const result = await aiApi.chat([...history, { role: 'user', content: outgoing }]);
 
-      let response = "I understand you're asking about vendor risk management. Based on your current portfolio, I can provide detailed analysis on risk scores, compliance gaps, or remediation recommendations. Could you please provide more specific details about what you'd like to explore?";
-
-      if (input.toLowerCase().includes('analyze') || input.toLowerCase().includes('cloudsecure')) {
-        response = responses['analyze'];
-      } else if (input.toLowerCase().includes('vulnerabilities') || input.toLowerCase().includes('common')) {
-        response = responses['vulnerabilities'];
-      } else if (input.toLowerCase().includes('remediation') || input.toLowerCase().includes('steps')) {
-        response = responses['remediation'];
-      } else if (input.toLowerCase().includes('summary') || input.toLowerCase().includes('pending')) {
-        response = responses['summary'];
-      }
-
+    if (result.status === 503) {
+      // AI not configured on the server — inline notice, not a fake reply.
+      setNotConfigured(true);
+    } else {
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: response,
+        content: result.data?.reply ?? result.error ?? 'Something went wrong. Please try again.',
         timestamp: new Date(),
       };
-
       setMessages(prev => [...prev, assistantMessage]);
-      setIsTyping(false);
-    }, 1500);
+    }
+    setIsTyping(false);
   };
 
   return (
@@ -126,6 +115,17 @@ export function AIAssistantPage() {
         >
           <Card className="flex-1 flex flex-col min-h-0">
             <CardContent className="flex-1 flex flex-col p-0 min-h-0">
+              {notConfigured && (
+                <div className="flex items-start gap-2 m-4 mb-0 p-3 rounded-lg border border-warning/40 bg-warning/10" data-testid="ai-not-configured">
+                  <AlertTriangle className="w-4 h-4 text-warning mt-0.5 flex-shrink-0" />
+                  <div className="text-sm">
+                    <p className="font-medium">AI is not configured</p>
+                    <p className="text-muted-foreground">
+                      An administrator must set the AI_PROVIDER, AI_API_KEY, and AI_MODEL environment variables on the server.
+                    </p>
+                  </div>
+                </div>
+              )}
               <ScrollArea className="flex-1 p-6" ref={scrollRef}>
                 <div className="space-y-6">
                   <AnimatePresence>

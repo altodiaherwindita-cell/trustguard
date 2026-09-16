@@ -6,6 +6,9 @@ interface ApiResponse<T> {
   data?: T;
   error?: string;
   message?: string;
+  // HTTP status on error responses, for callers that branch on it (AI page's
+  // 503 not-configured notice).
+  status?: number;
 }
 
 interface User {
@@ -31,7 +34,7 @@ interface AuthResponse {
 }
 
 // Helper function to handle API requests
-async function request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
+async function request<T>(endpoint: string, options: RequestInit = {}, timeoutMs = API_TIMEOUT_MS): Promise<ApiResponse<T>> {
   const token = localStorage.getItem('auth_token');
 
   const headers: HeadersInit = {
@@ -43,9 +46,8 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  // Create AbortController for timeout
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -69,7 +71,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     }
 
     if (!response.ok) {
-      return { error: data.error || data.message || 'Request failed' };
+      return { error: data.error || data.message || 'Request failed', status: response.status };
     }
 
     return { data: data as T };
@@ -862,6 +864,17 @@ export const reportsApi = {
     }
 
     return await response.blob();
+  },
+};
+
+// AI Assistant API
+export const aiApi = {
+  /** POST /api/ai/chat. Returns { reply } or { error } (503 when AI is unconfigured). */
+  async chat(messages: Array<{ role: 'user' | 'assistant'; content: string }>): Promise<ApiResponse<{ reply: string }>> {
+    return request<{ reply: string }>('/api/ai/chat', {
+      method: 'POST',
+      body: JSON.stringify({ messages }),
+    }, 30_000); // LLM latency exceeds the 5s default
   },
 };
 
