@@ -9,51 +9,55 @@ interface RiskBadgeProps {
   className?: string;
 }
 
-const riskConfig: Record<RiskLevel, { label: string; className: string }> = {
+const riskConfig: Record<RiskLevel, { label: string; dotClass: string; textClass: string }> = {
   low: {
     label: 'Low Risk',
-    className: 'bg-success/10 text-success border-success/20',
+    dotClass: 'risk-dot-low',
+    textClass: 'text-success',
   },
   medium: {
     label: 'Medium Risk',
-    className: 'bg-warning/10 text-warning border-warning/20',
+    dotClass: 'risk-dot-medium',
+    textClass: 'text-warning',
   },
   high: {
     label: 'High Risk',
-    className: 'bg-destructive/10 text-destructive border-destructive/20',
+    dotClass: 'risk-dot-high',
+    textClass: 'text-destructive',
   },
   critical: {
     label: 'Critical Risk',
-    className: 'bg-risk-critical/10 text-risk-critical border-risk-critical/20',
+    dotClass: 'risk-dot-critical',
+    textClass: 'text-[rgb(var(--color-risk-critical))]',
   },
 };
 
 const sizeClasses = {
-  sm: 'px-2 py-0.5 text-xs',
-  md: 'px-3 py-1 text-sm',
-  lg: 'px-4 py-1.5 text-base',
+  sm: { gap: 'gap-1.5', padding: 'px-2.5 py-1', text: 'text-xs', dot: 'w-1.5 h-1.5' },
+  md: { gap: 'gap-2', padding: 'px-3 py-1.5', text: 'text-sm', dot: 'w-2 h-2' },
+  lg: { gap: 'gap-2.5', padding: 'px-4 py-2', text: 'text-base', dot: 'w-2.5 h-2.5' },
 };
 
 export function RiskBadge({ level, score, showScore = false, size = 'md', className }: RiskBadgeProps) {
   const config = riskConfig[level];
+  const sizes = sizeClasses[size];
 
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 font-medium rounded-full border',
-        config.className,
-        sizeClasses[size],
+        'inline-flex items-center font-semibold rounded-full border',
+        config.dotClass,
+        config.textClass,
+        'border-[rgb(var(--color-cyan))]/20 bg-[rgb(var(--color-cyan))]/5',
+        sizes.padding,
+        sizes.gap,
         className
       )}
     >
-      <span className={cn(
-        'w-2 h-2 rounded-full',
-        level === 'low' && 'bg-success',
-        level === 'medium' && 'bg-warning',
-        level === 'high' && 'bg-destructive',
-        level === 'critical' && 'bg-risk-critical'
-      )} />
-      {showScore && score !== undefined ? `${score}%` : config.label}
+      <span className={sizes.dot} aria-hidden="true" />
+      <span className={sizes.text}>
+        {showScore && score !== undefined ? `${score}%` : config.label}
+      </span>
     </span>
   );
 }

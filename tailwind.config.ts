@@ -25,6 +25,7 @@ export default {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
+          hover: "hsl(var(--primary-hover))",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -57,6 +58,7 @@ export default {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
+          border: "hsl(var(--card-border))",
         },
         risk: {
           low: "hsl(var(--risk-low))",
@@ -74,6 +76,12 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+      },
+      backgroundImage: {
+        'gradient-card': 'var(--gradient-card)',
+      },
+      spacing: {
+        '4.5': '1.125rem',
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -107,6 +115,10 @@ export default {
           "50%": { transform: "scale(1)", opacity: "0.5" },
           "100%": { transform: "scale(0.95)", opacity: "1" },
         },
+        "caret-blink": {
+          "0%,70%,100%": { opacity: "1" },
+          "20%,50%": { opacity: "0" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -114,6 +126,7 @@ export default {
         "fade-in": "fade-in 0.5s ease-out",
         "slide-up": "slide-up 0.5s ease-out",
         "pulse-ring": "pulse-ring 2s infinite",
+        "caret-blink": "caret-blink 1.25s ease-out infinite",
       },
     },
   },

@@ -19,7 +19,7 @@ export default function AuthPage() {
   const [password, setPassword] = useState('');
 
   useEffect(() => {
-    if (user) navigate(redirect, { replace: true });
+    if (user && !user.mustChangePassword) navigate(redirect, { replace: true });
   }, [user, navigate, redirect]);
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -34,6 +34,13 @@ export default function AuthPage() {
       localStorage.setItem('auth_user', JSON.stringify(result.data.user));
       // Directly update the AuthContext state
       setUserFromToken(result.data.user);
+      
+      // Redirect to change password if required
+      if (result.data.user.mustChangePassword) {
+        toast.info('Please change your password to continue');
+        navigate('/change-password', { replace: true });
+        return;
+      }
     }
     
     toast.success('Welcome back');

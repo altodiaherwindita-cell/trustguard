@@ -15,14 +15,12 @@ export default function InvitePage() {
 
   useEffect(() => {
     if (authLoading) return;
-    // In production, this should call a backend endpoint to validate the invitation
-    // For now, we'll simulate the flow
     (async () => {
       try {
-        // Call backend to validate invitation token
+        // The backend is the only authority on whether a token is valid.
         const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/invitations/${token}`);
         const data = await response.json();
-        
+
         if (!response.ok || !data.valid) {
           setStatus('invalid');
           return;
@@ -36,10 +34,9 @@ export default function InvitePage() {
           navigate(`/questionnaire/${data.assessment_id}`, { replace: true });
         }
       } catch (err) {
+        // Fail closed: a network error must not be treated as a valid invitation.
         console.error('Invitation error:', err);
-        // For demo purposes, allow access
-        setStatus('needs-auth');
-        setInfo({ requires_auth: true, email: 'vendor@example.com' });
+        setStatus('invalid');
       }
     })();
   }, [token, user, authLoading, navigate]);

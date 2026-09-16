@@ -1,70 +1,59 @@
-# Compiled and build artifacts
-*.pyc
-__pycache__/
-*.o
-*.obj
-*.class
-*.exe
-*.dll
-*.so
-*.a
-*.out
-
 # Dependencies
 node_modules/
-venv/
-.venv/
-.env
-.env.local
-.env.*
+server/node_modules/
 
-# Build directories
+# Build outputs
 dist/
 build/
-target/
-.gradle/
 
-# Cache directories
-.mypy_cache/
-.pytest_cache/
+# Coverage
 coverage/
-htmlcov/
-*.coverage
+server/coverage/
 
-# Editors
+# Logs
+*.log
+server/server.log
+
+# Test files
+server/test/
+
+# Generated/Config files
+server/babel.config.js
+server/jest.config.js
+
+# IDE/Editor
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# System files
+# OS
 .DS_Store
 Thumbs.db
 
-# Logs and temp files
-*.log
-*.tmp
+# Environment files
+.env
+.env.local
+.env.*.local
 
-# Compressed files
-*.zip
-*.gz
-*.tar
-*.tgz
-*.bz2
-*.xz
-*.7z
-*.rar
-*.zst
-*.lz4
-*.lzh
-*.cab
-*.arj
-*.rpm
-*.deb
-*.Z
-*.lz
-*.lzo
-*.tar.gz
-*.tar.bz2
-*.tar.xz
-*.tar.zst
+# Turbo/Build cache
+.turbo/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+
+# Knowledge graph output
+graphify-out/
+
+# Documentation/Summary files (auto-generated)
+BUG_FIXES_SUMMARY.md
+BUILD_CONTINUATION.md
+TEST_FIXES_SUMMARY.md
+CLAUDE.md

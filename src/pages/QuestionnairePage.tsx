@@ -115,9 +115,16 @@ export function QuestionnairePage() {
       if (data.error) throw new Error(data.error);
 
       toast.success('Assessment submitted');
-      setAiSummary(data.aiSummary);
-      setScoreResult(data.scoreResult);
       setReadonly(true);
+
+      // The submit route returns only { assessment }, not scoreResult/aiSummary,
+      // so re-read the scored assessment rather than reading fields that are
+      // never sent (which left the results panel blank until a manual reload).
+      const refreshed = await apiFetch(`/api/assessments/${assessmentId}`);
+      if (refreshed.data) {
+        setScoreResult(buildResultFromAssessment(refreshed.data));
+        setAiSummary(refreshed.data.ai_summary);
+      }
     } catch (err: any) {
       toast.error(err.message || 'Submission failed');
     } finally {
@@ -196,7 +203,7 @@ export function QuestionnairePage() {
                     </div>
                   </RadioGroup>
                 )}
-                {q.type === 'select' && q.options && (
+                {(q.type === 'single-choice' || q.type === 'select') && q.options && (
                   <RadioGroup
                     value={answers[q.id]}
                     onValueChange={(v) => handleAnswer(q.id, v)}
@@ -211,7 +218,7 @@ export function QuestionnairePage() {
                     ))}
                   </RadioGroup>
                 )}
-                {q.type === 'multiselect' && q.options && (
+                {(q.type === 'multiple-choice' || q.type === 'multiselect') && q.options && (
                   <div className="space-y-2">
                     {q.options.map((opt) => (
                       <div key={opt} className="flex items-center gap-2">

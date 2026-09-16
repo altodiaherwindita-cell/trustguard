@@ -11,8 +11,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { FileText, Plus, Edit, Trash2, Loader2, Save, X } from 'lucide-react';
 import { toast } from 'sonner';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
 export function QuestionnaireManagementPage() {
   const { isTPRM, isAdmin } = useAuth();
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -40,9 +38,11 @@ export function QuestionnaireManagementPage() {
   const loadQuestions = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/api/questions`);
-      const data = await response.json();
-      setQuestions(data.data || []);
+      const result = await questionsApi.getAll();
+      if (result.error) {
+        toast.error(result.error);
+      }
+      setQuestions(result.data || []);
     } catch (error) {
       console.error('Error loading questions:', error);
       toast.error('Failed to load questions');
@@ -99,27 +99,20 @@ export function QuestionnaireManagementPage() {
         display_order: Number(formData.display_order),
       };
 
-      const url = editingQuestion
-        ? `${API_BASE}/api/questions/${formData.id}`
-        : `${API_BASE}/api/questions`;
+      let result;
+      if (editingQuestion) {
+        result = await questionsApi.update(formData.id, payload);
+      } else {
+        result = await questionsApi.create(payload as Omit<Question, 'id'>);
+      }
 
-      const method = editingQuestion ? 'PUT' : 'POST';
-
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-
-      if (data.error) throw new Error(data.error);
+      if (result.error) throw new Error(result.error);
 
       toast.success(editingQuestion ? 'Question updated' : 'Question created');
       setIsDialogOpen(false);
       loadQuestions();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to save question');
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'Failed to save question');
     }
     setSaving(false);
   };
@@ -128,17 +121,14 @@ export function QuestionnaireManagementPage() {
     if (!confirm('Are you sure you want to delete this question?')) return;
 
     try {
-      const response = await fetch(`${API_BASE}/api/questions/${questionId}`, {
-        method: 'DELETE',
-      });
-      const data = await response.json();
+      const result = await questionsApi.delete(questionId);
 
-      if (data.error) throw new Error(data.error);
+      if (result.error) throw new Error(result.error);
 
       toast.success('Question deleted');
       loadQuestions();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to delete question');
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete question');
     }
   };
 
@@ -232,7 +222,7 @@ export function QuestionnaireManagementPage() {
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
                 <Select value={formData.category} onValueChange={(v) => setFormData({ ...formData, category: v })}>
-                  <SelectTrigger>
+                  <SelectTrigger id="category">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -245,7 +235,7 @@ export function QuestionnaireManagementPage() {
               <div className="space-y-2">
                 <Label htmlFor="type">Question Type</Label>
                 <Select value={formData.type} onValueChange={(v) => setFormData({ ...formData, type: v })}>
-                  <SelectTrigger>
+                  <SelectTrigger id="type">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -295,7 +285,7 @@ export function QuestionnaireManagementPage() {
               <div className="space-y-2">
                 <Label htmlFor="risk_impact">Risk Impact</Label>
                 <Select value={formData.risk_impact} onValueChange={(v) => setFormData({ ...formData, risk_impact: v })}>
-                  <SelectTrigger>
+                  <SelectTrigger id="risk_impact">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

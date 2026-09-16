@@ -13,16 +13,20 @@ export const authenticateToken = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'default_secret');
-  
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      throw new Error('JWT_SECRET environment variable must be set');
+    }
+    const decoded = jwt.verify(token, jwtSecret, { algorithms: ['HS256'] });
+
     // Check if token has expired due to force relogin (8 hours)
     const tokenAge = Date.now() - decoded.iat * 1000;
     const maxTokenAge = FORCE_RELOGIN_HOURS * 60 * 60 * 1000; // Convert to milliseconds
-    
+
     if (tokenAge > maxTokenAge) {
       return res.status(401).json({ error: 'Session expired. Please login again.' });
     }
-    
+
     // Verify user exists and is active
     const result = await pool.query(
       'SELECT id, email, full_name, company FROM users WHERE id = $1 AND is_active = true',
@@ -33,16 +37,58 @@ export const authenticateToken = async (req, res, next) => {
       return res.status(401).json({ error: 'User not found or inactive' });
     }
 
+    // Resolve roles here so routes on the authenticateToken-only path can read
+    // req.userRole. Previously only requireRole set it, so ownership checks in
+    // routes without requireRole saw undefined and denied admins/analysts.
+    const rolesResult = await pool.query(
+      'SELECT role FROM user_roles WHERE user_id = $1',
+      [decoded.userId]
+    );
+    const roles = rolesResult.rows.map(r => r.role);
+
     req.user = result.rows[0];
     req.userId = decoded.userId;
+    // notifications.js matches on `user_id = $1 OR recipient_email = $2`; without
+    // this the email half of that predicate was always NULL and never matched.
+    req.userEmail = result.rows[0].email;
+    req.userRoles = roles;
+    // Most privileged role wins, so `req.userRole === 'admin'` holds for admins
+    // who also carry tprm_analyst.
+    req.userRole = ['admin', 'tprm_analyst', 'vendor'].find(r => roles.includes(r));
     req.tokenIssuedAt = decoded.iat;
-  
+
+    // Check session activity timeout (15 minutes of inactivity)
+    const activityCheck = checkSessionActivityInternal(req, res);
+    if (activityCheck) {
+      return activityCheck;
+    }
+
     next();
   } catch (error) {
     console.error('Token verification error:', error);
     return res.status(403).json({ error: 'Invalid or expired token' });
   }
 };
+
+// Internal function to check session activity (to avoid middleware chain issues)
+function checkSessionActivityInternal(req, res) {
+  if (!req.tokenIssuedAt) {
+    return null;
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const timeSinceLastActivity = now - req.tokenIssuedAt;
+  const timeoutSeconds = SESSION_TIMEOUT_MINUTES * 60;
+
+  if (timeSinceLastActivity > timeoutSeconds) {
+    return res.status(401).json({
+      error: 'Session timed out due to inactivity',
+      reason: 'inactivity_timeout'
+    });
+  }
+
+  return null;
+}
 
 export const requireRole = (...roles) => {
   return async (req, res, next) => {
