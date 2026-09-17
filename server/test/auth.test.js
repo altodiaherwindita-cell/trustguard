@@ -281,6 +281,47 @@ describe('Auth Routes', () => {
       }
     });
 
+    // Regression: logging in did not reset the clock. A user who was idle for
+    // >15 minutes and then signed in kept the stale timestamp from their
+    // previous session, so their FIRST request with a brand-new token 401'd as
+    // "inactivity_timeout" while the second one passed — which made it look
+    // like a flake rather than a bug.
+    it('a fresh login clears a stale clock from the previous session', async () => {
+      const hashedPassword = await bcrypt.hash('Test123!', 10);
+      const base = Date.now();
+
+      // A request in an earlier session sets the clock at `base`.
+      jest.spyOn(Date, 'now').mockReturnValue(base);
+      mockDb(authHandlers());
+      const earlier = await request(app)
+        .get('/api/auth/me')
+        .set('Authorization', `Bearer ${freshToken()}`);
+      expect(earlier.status).toBe(200);
+
+      // 16 minutes pass. The user signs in again, getting a brand-new token.
+      jest.spyOn(Date, 'now').mockReturnValue(base + 16 * 60 * 1000);
+      mockDb([
+        ['FROM users WHERE email', { rows: [{ ...USER_ROW, password_hash: hashedPassword }] }],
+        ['FROM user_roles', { rows: [{ role: 'vendor' }] }],
+      ]);
+      const login = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'test@example.com', password: 'Test123!' });
+      expect(login.status).toBe(200);
+
+      // The new token's first use must succeed: signing in is activity.
+      mockDb(authHandlers());
+      const first = await request(app)
+        .get('/api/auth/me')
+        .set('Authorization', `Bearer ${login.body.token}`);
+
+      if (first.status !== 200) {
+        throw new Error(
+          `first request after a fresh login must succeed, got ${first.status} ${JSON.stringify(first.body)}`
+        );
+      }
+    });
+
     it('rejects after 15 minutes of inactivity', async () => {
       mockDb(authHandlers());
       const token = tokenIssuedMinutesAgo(0);

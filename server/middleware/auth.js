@@ -138,6 +138,14 @@ export const requireRole = (...roles) => {
 // Removed: `checkSessionActivity` was a second, never-registered copy of the
 // inactivity check. It had the same `iat` bug, nothing imported it, and
 // authenticateToken owns the check now — one implementation, one place to fix.
+
+// A successful login is activity. Without this, a user who logs in after more
+// than 15 minutes away keeps the stale timestamp from their *previous* session,
+// so their first request with a brand-new token 401s as "inactivity_timeout"
+// and the second one succeeds — the token is fine, the clock was stale.
+// routes/auth.js calls this right after signing a token.
+export const markActivity = (userId) => lastActivityAt.set(userId, Date.now());
+
 // Exposed for tests: clear a user's activity clock.
 export const resetActivityClock = (userId) => {
   if (userId === undefined) lastActivityAt.clear();

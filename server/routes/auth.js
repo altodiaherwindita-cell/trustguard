@@ -3,7 +3,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import { pool } from '../db.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, markActivity } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -116,6 +116,12 @@ router.post('/login', async (req, res) => {
       jwtSecret,
       { expiresIn: '7d', algorithm: 'HS256' }
     );
+
+    // Signing in is activity. Without this the inactivity clock still holds the
+    // timestamp from the user's *previous* session, so signing in after more
+    // than 15 minutes away makes their first request 401 as a timeout even
+    // though the token is seconds old.
+    markActivity(user.id);
 
     res.json({
       message: 'Login successful',
