@@ -1,5 +1,10 @@
 // API Client for TrustGuard AI Backend
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+// Empty by default so requests go to the page's own origin and nginx proxies
+// /api/ to the API container. VITE_API_URL is only for pointing at a separate
+// API host; the old `|| 'http://localhost:3000'` fallback meant a production
+// build with no VITE_API_URL sent every request to the *user's* localhost.
+// In dev, vite.config.ts proxies /api to the local API server instead.
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 const API_TIMEOUT_MS = 5000; // 5 second timeout
 
 interface ApiResponse<T> {

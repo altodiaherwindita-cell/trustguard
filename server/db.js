@@ -16,7 +16,11 @@ export const pool = new Pool(
         user: process.env.DB_USER || 'trustguard',
         host: process.env.DB_HOST || 'db',
         database: process.env.DB_NAME || 'trustguard',
-        password: process.env.DB_PASSWORD || 'changeme_in_production',
+        // No fallback: a committed default password here meant a deployment that
+        // forgot to set DB_PASSWORD still connected, using a password published
+        // in the repo. Unset now fails the connection instead of succeeding
+        // insecurely.
+        password: process.env.DB_PASSWORD,
         port: parseInt(process.env.DB_PORT || '5432'),
         max: 20,
         idleTimeoutMillis: 30000,

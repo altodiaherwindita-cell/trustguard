@@ -18,7 +18,7 @@ export default function InvitePage() {
     (async () => {
       try {
         // The backend is the only authority on whether a token is valid.
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/invitations/${token}`);
+        const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/invitations/${token}`);
         const data = await response.json();
 
         if (!response.ok || !data.valid) {

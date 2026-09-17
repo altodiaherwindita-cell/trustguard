@@ -21,7 +21,7 @@ const categoryIcons: Record<string, React.ElementType> = {
   'Compliance': FileCheck, 'Security Operations': Server, 'Business Continuity': CheckCircle2,
 };
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 async function apiFetch(endpoint: string, options: RequestInit = {}) {
   const token = authApi.getToken();

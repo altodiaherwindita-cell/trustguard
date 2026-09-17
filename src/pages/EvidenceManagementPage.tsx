@@ -106,7 +106,9 @@ export default function EvidenceManagementPage({ assessmentId: initialAssessment
     }
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${endpoint}`, {
+      // Relative, like src/lib/api.ts: same-origin in production (nginx proxies
+      // /api/), vite.config.ts proxy in dev.
+      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}${endpoint}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
           'Content-Type': 'application/json',

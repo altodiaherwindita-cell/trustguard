@@ -8,8 +8,12 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${DB_USER:-trustguard}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme_in_production}
+      # `:?` not `:-`: compose refuses to start rather than silently booting
+      # every deployment on the same committed password.
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env (see .env.example)}
       POSTGRES_DB: ${DB_NAME:-trustguard}
+      # Optional. init.sql seeds the default admin from this; unset seeds none.
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
@@ -32,8 +36,10 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://${DB_USER:-trustguard}:${DB_PASSWORD:-changeme_in_production}@db:5432/${DB_NAME:-trustguard}
-      JWT_SECRET: ${JWT_SECRET:-change_this_in_production}
+      DATABASE_URL: postgresql://${DB_USER:-trustguard}:${DB_PASSWORD:?set DB_PASSWORD in .env}@db:5432/${DB_NAME:-trustguard}
+      # Required too: a committed default here means anyone can mint valid tokens
+      # for any deployment that did not override it.
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env (openssl rand -hex 32)}
       PORT: 3000
     depends_on:
       db:
@@ -55,11 +61,13 @@ services:
       dockerfile: Dockerfile
       target: production
       args:
-        VITE_API_URL: ${VITE_API_URL:-http://api:3000}
+        # Empty on purpose: the bundle calls the page's own origin and nginx
+        # proxies /api/ to the api container. This used to default to
+        # http://api:3000, a docker-internal hostname the *browser* cannot
+        # resolve, so every API call from the compose frontend failed.
+        VITE_API_URL: ${VITE_API_URL:-}
     container_name: trustguard-web
     restart: unless-stopped
-    environment:
-      VITE_API_URL: ${VITE_API_URL:-http://api:3000}
     depends_on:
       - api
     ports:

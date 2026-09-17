@@ -35,6 +35,8 @@ COPY --from=builder /app/dist .
 
 # Copy custom nginx config
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+# nginx.conf includes this by absolute path from the conf.d directory
+COPY security-headers.conf /etc/nginx/conf.d/security-headers.conf
 
 # Expose port 80
 EXPOSE 80

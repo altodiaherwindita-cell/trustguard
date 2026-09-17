@@ -11,6 +11,18 @@ export default defineConfig(({ mode }) => ({
     hmr: {
       overlay: false,
     },
+    // src/lib/api.ts uses relative URLs, so dev needs the API proxied onto the
+    // dev-server origin. Production gets this from nginx's `location /api/`.
+    proxy: {
+      "/api": {
+        target: process.env.VITE_API_PROXY_TARGET || "http://localhost:3000",
+        changeOrigin: true,
+      },
+      "/health": {
+        target: process.env.VITE_API_PROXY_TARGET || "http://localhost:3000",
+        changeOrigin: true,
+      },
+    },
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {

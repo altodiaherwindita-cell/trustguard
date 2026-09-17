@@ -3,6 +3,9 @@
 
 -- Enable necessary extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- pgcrypto supplies crypt()/gen_salt(), so the default admin's password is
+-- hashed at seed time from ADMIN_PASSWORD instead of being committed as a hash.
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- Create enum types
 CREATE TYPE app_role AS ENUM ('admin', 'tprm_analyst', 'vendor');
@@ -140,12 +143,26 @@ INSERT INTO questions (id, category, question, type, options, weight, risk_impac
 ('q9','Security Operations','How frequently do you perform vulnerability assessments?','single-choice','["Weekly","Monthly","Quarterly","Annually","Never"]',7,'medium',9),
 ('q10','Business Continuity','What is your Recovery Time Objective (RTO)?','single-choice','["Under 1 hour","1-4 hours","4-24 hours","Over 24 hours"]',6,'medium',10);
 
--- Create default admin user (password: ChangeMe@889 - CHANGE IN PRODUCTION!)
--- Password hash is for 'ChangeMe@889' using bcrypt
--- must_change_password is set to true to force password change on first login
+-- Create default admin user.
+--
+-- The password comes from the ADMIN_PASSWORD environment variable and is hashed
+-- here with pgcrypto. It used to be a hardcoded bcrypt hash of 'ChangeMe@889'
+-- committed to the repo, which meant every deployment of this project shipped
+-- with the same known admin password — and README.md advertised it.
+--
+-- Unset ADMIN_PASSWORD seeds no admin at all. Create one deliberately:
+--   ADMIN_PASSWORD='...' psql -d trustguard -f init.sql
+--   docker compose exec -e ADMIN_PASSWORD='...' db psql -U trustguard -f -
+-- must_change_password still forces a change on first login.
+\getenv admin_password ADMIN_PASSWORD
+
+\if :{?admin_password}
 INSERT INTO users (email, password_hash, full_name, company, must_change_password) VALUES
-('admin@trustguard.ai', '$2b$12$HHhixK3A0Pj7MmJI3IdHqeQ44eBuknuDaUrhAp2YxNP5Hg5yjc.gi', 'Admin User', 'TrustGuard', true)
+('admin@trustguard.ai', crypt(:'admin_password', gen_salt('bf', 12)), 'Admin User', 'TrustGuard', true)
 ON CONFLICT (email) DO NOTHING;
+\else
+\echo 'ADMIN_PASSWORD not set - skipping default admin seed.'
+\endif
 
 -- Assign admin role to the default admin user
 INSERT INTO user_roles (user_id, role)

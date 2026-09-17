@@ -69,9 +69,11 @@ This will start:
 - API: http://localhost:3000
 - API Health: http://localhost:3000/health
 
-Default admin credentials:
-- Email: admin@trustguard.ai
-- Password: ChangeMe@889 (**Change immediately!**)
+There is no default admin password. `init.sql` seeds `admin@trustguard.ai`
+using the `ADMIN_PASSWORD` environment variable, hashed at seed time with
+pgcrypto. Leave it blank and no admin is created. Either way the account has
+`must_change_password = true` and is forced to set a new password on first
+login.
 
 ### Option 2: Local Development
 
@@ -222,12 +224,17 @@ See `.env.example` for all available options:
 | Variable | Description | Default |
 |----------|-------------|---------|
 | DB_USER | Database username | trustguard |
-| DB_PASSWORD | Database password | changeme_in_production |
+| DB_PASSWORD | Database password | **required** — `openssl rand -base64 24` |
 | DB_NAME | Database name | trustguard |
 | DB_PORT | Database port | 5432 |
-| JWT_SECRET | JWT signing secret | change_this_in_production |
+| ADMIN_PASSWORD | Seeds `admin@trustguard.ai`; blank seeds no admin | blank |
+| JWT_SECRET | JWT signing secret | **required** — `openssl rand -hex 32` |
 | API_PORT | API server port | 3000 |
 | WEB_PORT | Web server port | 80 |
+| VITE_API_URL | Separate API host; blank = same origin | blank |
+
+`docker compose up` refuses to start until `DB_PASSWORD` and `JWT_SECRET` are
+set — there are no working defaults.
 
 ## 🚨 Production Deployment
 
