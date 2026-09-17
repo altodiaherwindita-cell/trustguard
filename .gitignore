@@ -14,13 +14,6 @@ server/coverage/
 *.log
 server/server.log
 
-# Test files
-server/test/
-
-# Generated/Config files
-server/babel.config.js
-server/jest.config.js
-
 # IDE/Editor
 .vscode/
 .idea/

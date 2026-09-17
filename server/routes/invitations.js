@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { randomBytes } from 'crypto';
-import { pool } from '../index.js';
+import { pool } from '../db.js';
 import { sendAssessmentInvitation } from '../services/emailService.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 

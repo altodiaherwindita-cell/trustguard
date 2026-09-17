@@ -1,48 +1,12 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
-import { Pool } from 'pg';
-import authRoutes from './routes/auth.js';
-import userRoutes from './routes/users.js';
-import vendorRoutes from './routes/vendors.js';
-import assessmentRoutes from './routes/assessments.js';
-import questionRoutes from './routes/questions.js';
-import invitationRoutes from './routes/invitations.js';
-import evidenceRoutes from './routes/evidence.js';
-import auditLogRoutes from './routes/audit-logs.js';
-import remediationRoutes from './routes/remediation.js';
-import notificationRoutes from './routes/notifications.js';
-import reportRoutes from './routes/reports.js';
-import aiRoutes from './routes/ai.js';
-import { checkSessionActivity } from './middleware/auth.js';
+// db.js loads dotenv itself, before it constructs the pool.
+import { pool } from './db.js';
+import { createApp } from './app.js';
 import { initializeScheduler } from './services/scheduler.js';
 
-dotenv.config();
-
-const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Database connection pool with retry logic
 let dbReady = false;
-
-// Support both DATABASE_URL and individual connection parameters
-const connectionString = process.env.DATABASE_URL;
-const pool = new Pool(
-  connectionString
-    ? { connectionString }
-    : {
-        user: process.env.DB_USER || 'trustguard',
-        host: process.env.DB_HOST || 'db',
-        database: process.env.DB_NAME || 'trustguard',
-        password: process.env.DB_PASSWORD || 'changeme_in_production',
-        port: parseInt(process.env.DB_PORT || '5432'),
-        max: 20,
-        idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 5000,
-      }
-);
 
 // Test database connection with retry
 async function connectWithRetry(maxRetries = 5, delayMs = 2000) {
@@ -66,93 +30,13 @@ async function connectWithRetry(maxRetries = 5, delayMs = 2000) {
   return false;
 }
 
+const app = createApp({ dbReady: () => dbReady });
+
 // Initialize email reminder scheduler after DB connection
 connectWithRetry().then(() => {
   if (dbReady) {
     initializeScheduler();
   }
-});
-
-// Middleware
-app.use(helmet());
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Rate limiting
-// E2E runs log in dozens of times from one IP; the production limits would make
-// the suite fail on its own traffic rather than on a defect. test keeps the same
-// middleware shape, just with headroom.
-const isTest = process.env.NODE_ENV === 'test';
-
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: isTest ? 10_000 : 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.',
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: isTest ? 10_000 : 20, // limit auth requests to 20 per windowMs
-  message: 'Too many authentication attempts, please try again later.',
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-app.use('/api/', limiter);
-app.use('/api/auth', authLimiter);
-
-// API Routes - always register them, they'll handle DB errors internally
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/vendors', vendorRoutes);
-app.use('/api/assessments', assessmentRoutes);
-app.use('/api/questions', questionRoutes);
-app.use('/api/invitations', invitationRoutes);
-app.use('/api/evidence', evidenceRoutes);
-app.use('/api/audit-logs', auditLogRoutes);
-app.use('/api/remediation', remediationRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/reports', reportRoutes);
-app.use('/api/ai', aiRoutes);
-
-// Note: Session activity check is now handled within authenticateToken middleware
-// to avoid interfering with public endpoints and routes that have their own auth logic
-
-// Health check endpoint with API info
-app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: dbReady ? 'healthy' : 'degraded',
-    database: dbReady ? 'connected' : 'disconnected',
-    timestamp: new Date().toISOString() 
-  });
-});
-
-// Root endpoint with API info
-app.get('/', (req, res) => {
-  res.json({ 
-    name: 'TrustGuard AI API', 
-    version: '1.0.0',
-    database: dbReady ? 'connected' : 'disconnected',
-    endpoints: [
-      '/health',
-      '/api/auth',
-      '/api/users',
-      '/api/vendors',
-      '/api/assessments'
-    ]
-  });
-});
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ 
-    error: 'Internal server error',
-    message: process.env.NODE_ENV === 'development' ? err.message : undefined
-  });
 });
 
 // Start server

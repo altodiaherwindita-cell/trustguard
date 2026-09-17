@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
-import { pool } from '../index.js';
+import { pool } from '../db.js';
 import { calculateRiskScore } from '../services/riskScoring.js';
 
 const router = Router();

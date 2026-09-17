@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
-import { pool } from '../index.js';
+import { pool } from '../db.js';
 import PDFDocument from 'pdfkit';
 import ExcelJS from 'exceljs';
 

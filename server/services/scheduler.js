@@ -1,5 +1,5 @@
 import cron from 'node-cron';
-import { pool } from '../index.js';
+import { pool } from '../db.js';
 import {
   sendAssessmentDueReminder,
   sendAssessmentExpiryWarning,
