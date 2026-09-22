@@ -18,6 +18,12 @@ import aiRoutes from './routes/ai.js';
 export function createApp({ dbReady = () => true } = {}) {
   const app = express();
 
+  // Exactly one proxy hop in front (nginx in compose, which sets X-Forwarded-For).
+  // Without this express ignores that header and every request is keyed to the
+  // proxy's IP, so one user's traffic exhausts the shared rate limit for everyone
+  // — the 20-per-window auth limit becomes a global login cap.
+  app.set('trust proxy', 1);
+
   app.use(helmet());
   app.use(cors());
   app.use(express.json());

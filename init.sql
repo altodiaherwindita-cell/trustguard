@@ -156,9 +156,15 @@ INSERT INTO questions (id, category, question, type, options, weight, risk_impac
 -- must_change_password still forces a change on first login.
 \getenv admin_password ADMIN_PASSWORD
 
+-- The `:{?admin_password}` test only asks whether the variable is *defined*, and
+-- .env.example ships `ADMIN_PASSWORD=` (defined, empty). Guarding on definedness
+-- alone therefore seeded an admin whose password hash was crypt('', ...) — a
+-- working login with an empty password, on the account the comment above claims
+-- is skipped. The NULLIF makes blank mean the same thing as unset.
 \if :{?admin_password}
-INSERT INTO users (email, password_hash, full_name, company, must_change_password) VALUES
-('admin@trustguard.ai', crypt(:'admin_password', gen_salt('bf', 12)), 'Admin User', 'TrustGuard', true)
+INSERT INTO users (email, password_hash, full_name, company, must_change_password)
+SELECT 'admin@trustguard.ai', crypt(:'admin_password', gen_salt('bf', 12)), 'Admin User', 'TrustGuard', true
+WHERE NULLIF(:'admin_password', '') IS NOT NULL
 ON CONFLICT (email) DO NOTHING;
 \else
 \echo 'ADMIN_PASSWORD not set - skipping default admin seed.'

@@ -1,0 +1,23 @@
+# Both Dockerfiles install deps inside the image (npm ci on node:20-alpine) and
+# then COPY the source tree over the result. Without this file that copy also
+# brings the host's node_modules, silently replacing the musl-built tree with the
+# developer's glibc one. bcrypt's prebuilt binary is the one that breaks loudly:
+# it links libc.so.6 + glibc's __snprintf_chk, fails to relocate on musl, and
+# segfaults the process on the first bcrypt.compare — so every login killed the
+# API container. Never ship the host's node_modules into the image.
+**/node_modules
+
+# Build output and caches
+**/dist
+**/.vite
+**/coverage
+
+# Secrets and local state
+.env
+.env.*
+**/*.log
+
+# VCS and editor noise
+.git
+.gitignore
+**/.DS_Store
