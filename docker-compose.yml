@@ -41,13 +41,20 @@ services:
       # for any deployment that did not override it.
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env (openssl rand -hex 32)}
       PORT: 3000
+      # Origin emailed invitation links point at. Must be the URL the recipient's
+      # browser can reach, not the web container's name; defaults to the web
+      # service's published port (WEB_PORT, 80).
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
     depends_on:
       db:
         condition: service_healthy
     ports:
       - "${API_PORT:-3000}:3000"
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/health"]
+      # 127.0.0.1, not localhost: nginx and node bind IPv4 only, and musl resolves
+      # localhost to ::1 first, so the probe hits a closed port and the container
+      # reports unhealthy while serving traffic fine.
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -73,7 +80,8 @@ services:
     ports:
       - "${WEB_PORT:-80}:80"
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:80"]
+      # 127.0.0.1, not localhost — see the api healthcheck note above.
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:80"]
       interval: 30s
       timeout: 10s
       retries: 3
