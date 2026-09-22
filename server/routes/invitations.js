@@ -11,11 +11,14 @@ router.get('/:token', async (req, res) => {
   try {
     const { token } = req.params;
 
+    // No status filter: the token is the credential and expiry is the only real
+    // constraint. Filtering on 'pending' made every emailed link 404, because
+    // POST / below flips the row to 'sent' as soon as the mail goes out.
     const result = await pool.query(
       `SELECT ai.*, v.name as vendor_name
        FROM assessment_invitations ai
        JOIN vendors v ON ai.vendor_id = v.id
-       WHERE ai.token = $1 AND ai.status = 'pending' AND ai.expires_at > now()`,
+       WHERE ai.token = $1 AND ai.expires_at > now()`,
       [token]
     );
 
@@ -30,11 +33,69 @@ router.get('/:token', async (req, res) => {
       assessment_id: invitation.assessment_id,
       vendor_name: invitation.vendor_name,
       email: invitation.email,
-      requires_auth: true,
     });
   } catch (error) {
     console.error('Get invitation error:', error);
     res.status(500).json({ valid: false, error: 'Failed to validate invitation' });
+  }
+});
+
+// Accept an invitation: bind the invited vendor to the signed-in account.
+// Without this the vendor path is unreachable — `vendors.owner_user_id` is what
+// every vendor-ownership check compares against (assessments, evidence,
+// remediation, reports), and nothing else ever writes it for an invited vendor.
+router.post('/:token/accept', authenticateToken, async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    const result = await pool.query(
+      `SELECT ai.*, v.name as vendor_name
+       FROM assessment_invitations ai
+       JOIN vendors v ON ai.vendor_id = v.id
+       WHERE ai.token = $1`,
+      [token]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Invalid invitation' });
+    }
+
+    const invitation = result.rows[0];
+
+    if (new Date(invitation.expires_at) <= new Date()) {
+      return res.status(410).json({ error: 'Invitation has expired' });
+    }
+
+    // The invite is addressed to one mailbox. Binding it to whoever happens to
+    // hold the link would hand a vendor's assessment to any signed-in account.
+    // Checked before anything is written, so a wrong-account click leaves the
+    // invitation usable by its real recipient.
+    if (invitation.email.toLowerCase() !== (req.userEmail || '').toLowerCase()) {
+      return res.status(403).json({
+        error: 'This invitation was sent to a different email address. Sign in as the invited user.',
+      });
+    }
+
+    await pool.query(
+      'UPDATE vendors SET owner_user_id = $1 WHERE id = $2',
+      [req.userId, invitation.vendor_id]
+    );
+
+    await pool.query(
+      `UPDATE assessment_invitations
+       SET status = 'accepted', accepted_at = now()
+       WHERE id = $1`,
+      [invitation.id]
+    );
+
+    res.json({
+      message: 'Invitation accepted',
+      assessment_id: invitation.assessment_id,
+      vendor_id: invitation.vendor_id,
+    });
+  } catch (error) {
+    console.error('Accept invitation error:', error);
+    res.status(500).json({ error: 'Failed to accept invitation' });
   }
 });
 
@@ -75,7 +136,10 @@ router.post('/', authenticateToken, requireRole('admin', 'tprm_analyst'), async 
 
     // Send email notification if requested
     if (sendEmailNotification) {
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      // Must be the origin the *recipient's browser* can reach. The 5173 default
+      // here pointed every emailed link at a port nothing listens on: Vite runs
+      // on 8080 (vite.config.ts) and nginx serves :80 in compose.
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8080';
       const assessmentLink = `${frontendUrl}/invite/${token}`;
 
       const emailResult = await sendAssessmentInvitation(email, vendorName, assessmentLink, expiresAt);

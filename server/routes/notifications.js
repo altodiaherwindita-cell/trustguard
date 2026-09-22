@@ -219,6 +219,12 @@ router.patch('/templates/:id', authenticateToken, requireRole('admin'), async (r
       values
     );
 
+    // An unknown id leaves rows[0] undefined, so the client gets a 200 and
+    // "updated successfully" for a template that was never written.
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Notification template not found' });
+    }
+
     res.json({ 
       template: result.rows[0], 
       message: 'Template updated successfully' 

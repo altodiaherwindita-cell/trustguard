@@ -5,6 +5,38 @@ import { calculateRiskScore } from '../services/riskScoring.js';
 
 const router = Router();
 
+// Roll the newest score up onto the vendor row. `vendors.current_risk_score` /
+// `current_risk_level` are what the dashboard distribution and the vendors table
+// read, and nothing else ever wrote them — every widget rendered "Not assessed"
+// no matter how many assessments were scored. Best-effort: a failed rollup must
+// not fail the submit or review that already succeeded.
+// ponytail: an upsert-safe single UPDATE, no trigger, no history table. Move the
+// rollup into a trigger if vendors ever need score history.
+async function rollUpVendorRisk(vendorId) {
+  if (!vendorId) return;
+  try {
+    await pool.query(
+      `UPDATE vendors v
+       SET current_risk_score = a.risk_score,
+           current_risk_level = a.risk_level,
+           last_assessment_at = COALESCE(a.submitted_at, a.reviewed_at, now())
+       FROM assessments a
+       WHERE v.id = $1
+         AND a.vendor_id = v.id
+         AND a.risk_score IS NOT NULL
+         AND a.id = (
+           SELECT id FROM assessments
+           WHERE vendor_id = $1 AND risk_score IS NOT NULL
+           ORDER BY COALESCE(submitted_at, created_at) DESC
+           LIMIT 1
+         )`,
+      [vendorId]
+    );
+  } catch (error) {
+    console.error('Vendor risk rollup error:', error);
+  }
+}
+
 // Get all assessments (TPRM only)
 router.get('/', authenticateToken, requireRole('admin', 'tprm_analyst'), async (req, res) => {
   try {
@@ -291,6 +323,8 @@ router.post('/:id/submit', authenticateToken, async (req, res) => {
         ]
       );
 
+      await rollUpVendorRisk(updated.rows[0].vendor_id);
+
       res.json({ assessment: updated.rows[0], message: 'Assessment submitted successfully' });
     } catch (scoringError) {
       console.error('Score assessment error:', scoringError);
@@ -349,6 +383,10 @@ router.post('/:id/review', authenticateToken, requireRole('admin', 'tprm_analyst
       [newStatus, riskScore, riskLevel, overallScore, aiSummary, JSON.stringify(strengths), JSON.stringify(weaknesses), JSON.stringify(recommendations), JSON.stringify(categoryScores), req.userId, assessmentId]
     );
 
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Assessment not found' });
+    }
+
     // Record review history
     await pool.query(
       `INSERT INTO assessment_review_history (assessment_id, reviewer_id, action, comments, risk_score_before, risk_score_after, risk_level_before, risk_level_after)
@@ -391,9 +429,11 @@ router.post('/:id/review', authenticateToken, requireRole('admin', 'tprm_analyst
       }
     }
 
-    res.json({ 
-      assessment: result.rows[0], 
-      message: `Assessment ${reviewAction.replace('_', ' ')} successfully` 
+    await rollUpVendorRisk(result.rows[0].vendor_id);
+
+    res.json({
+      assessment: result.rows[0],
+      message: `Assessment ${reviewAction.replace('_', ' ')} successfully`
     });
   } catch (error) {
     console.error('Review assessment error:', error);
@@ -431,8 +471,9 @@ router.get('/:id/reviews', authenticateToken, async (req, res) => {
        FROM assessment_review_history rh
        LEFT JOIN users u ON rh.reviewer_id = u.id
        WHERE rh.assessment_id = $1
+         AND (rh.is_internal = false OR $2 = true)
        ORDER BY rh.created_at DESC`,
-      [assessmentId]
+      [assessmentId, hasTPRMRole]
     );
 
     res.json({ reviews: reviewsResult.rows });

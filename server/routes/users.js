@@ -192,10 +192,16 @@ router.patch('/:id/status', authenticateToken, requireRole('admin'), async (req,
     const { isActive } = req.body;
     const userId = req.params.id;
 
-    await pool.query(
-      'UPDATE users SET is_active = $1, updated_at = now() WHERE id = $2',
+    const result = await pool.query(
+      'UPDATE users SET is_active = $1, updated_at = now() WHERE id = $2 RETURNING id',
       [isActive, userId]
     );
+
+    // No rows means the id does not exist; without this the handler reports a
+    // successful deactivation for a user that was never there.
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
 
     res.json({ message: `User ${isActive ? 'activated' : 'deactivated'} successfully` });
   } catch (error) {

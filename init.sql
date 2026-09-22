@@ -390,6 +390,7 @@ CREATE TABLE IF NOT EXISTS assessment_review_history (
   risk_score_after INTEGER,
   risk_level_before TEXT,
   risk_level_after TEXT,
+  is_internal BOOLEAN NOT NULL DEFAULT true, -- Visible to internal team only
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
