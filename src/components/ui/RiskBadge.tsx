@@ -48,7 +48,7 @@ export function RiskBadge({ level, score, showScore = false, size = 'md', classN
         'inline-flex items-center font-semibold rounded-full border',
         config.dotClass,
         config.textClass,
-        'border-[rgb(var(--color-cyan))]/20 bg-[rgb(var(--color-cyan))]/5',
+        'border-border bg-muted/40',
         sizes.padding,
         sizes.gap,
         className

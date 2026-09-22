@@ -11,9 +11,16 @@ interface StatCardProps {
     value: number;
     isPositive: boolean;
   };
-  variant?: 'default' | 'primary' | 'critical' | 'warning' | 'success' | 'info';
+  variant?: 'default' | 'primary' | 'critical' | 'warning' | 'success';
   className?: string;
 }
+
+const accentLine: Record<string, string> = {
+  primary: 'bg-gradient-to-r from-transparent via-primary/60 to-transparent',
+  critical: 'bg-gradient-to-r from-transparent via-destructive/60 to-transparent',
+  warning: 'bg-gradient-to-r from-transparent via-warning/60 to-transparent',
+  success: 'bg-gradient-to-r from-transparent via-success/60 to-transparent',
+};
 
 const variantStyles = {
   default: 'bg-card border-border',
@@ -21,7 +28,6 @@ const variantStyles = {
   critical: 'bg-gradient-to-br from-destructive/5 via-destructive/2 to-destructive/5 border-destructive/20',
   warning: 'bg-gradient-to-br from-warning/5 via-warning/2 to-warning/5 border-warning/20',
   success: 'bg-gradient-to-br from-success/5 via-success/2 to-success/5 border-success/20',
-  info: 'bg-gradient-to-br from-info/5 via-info/2 to-info/5 border-info/20',
 };
 
 const iconStyles = {
@@ -30,7 +36,6 @@ const iconStyles = {
   critical: 'bg-gradient-to-br from-destructive/20 to-destructive/10 text-destructive',
   warning: 'bg-gradient-to-br from-warning/20 to-warning/10 text-warning',
   success: 'bg-gradient-to-br from-success/20 to-success/10 text-success',
-  info: 'bg-gradient-to-br from-info/20 to-info/10 text-info',
 };
 
 const titleStyles = {
@@ -39,7 +44,6 @@ const titleStyles = {
   critical: 'text-destructive',
   warning: 'text-warning',
   success: 'text-success',
-  info: 'text-info',
 };
 
 const valueStyles = {
@@ -48,7 +52,6 @@ const valueStyles = {
   critical: 'bg-gradient-to-r from-destructive via-destructive/80 to-destructive bg-clip-text text-transparent',
   warning: 'bg-gradient-to-r from-warning via-warning/80 to-warning bg-clip-text text-transparent',
   success: 'bg-gradient-to-r from-success via-success/80 to-success bg-clip-text text-transparent',
-  info: 'bg-gradient-to-r from-info via-info/80 to-info bg-clip-text text-transparent',
 };
 
 export function StatCard({
@@ -75,8 +78,8 @@ export function StatCard({
       <div
         className={cn(
           'absolute top-0 left-0 right-0 h-px opacity-0 hover:opacity-100 transition-opacity duration-300',
-          variant === 'default' && 'bg-gradient-to-r from-transparent via-border to-transparent',
-          variant !== 'default' && `bg-gradient-to-r from-transparent via-${variant}/60 to-transparent`
+          variant === 'default' && 'bg-gradient-to-r from-transparent via-muted-foreground/40 to-transparent',
+          variant !== 'default' && accentLine[variant]
         )}
       />
 

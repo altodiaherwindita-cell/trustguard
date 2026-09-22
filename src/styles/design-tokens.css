@@ -3,15 +3,11 @@
    A distinctive visual language for Third-Party Risk Management
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @layer base {
   :root {
     /* ---- Color Primitives ---- */
-    /* Obsidian - Deep authority background */
-    --color-obsidian: 10 15 20;
-    --color-obsidian-rgb: 10, 15, 20;
-
     /* Slate Scale - UI Layers */
     --color-slate-950: 2 6 23;
     --color-slate-900: 15 23 42;
@@ -25,11 +21,11 @@
     --color-slate-100: 241 245 249;
     --color-slate-50: 248 250 252;
 
-    /* Security Cyan - The Trust Accent */
-    --color-cyan: 0 212 170;
-    --color-cyan-dim: 0 212 170 / 0.15;
-    --color-cyan-glow: 0 212 170 / 0.4;
-    --color-cyan-strong: 0 180 145;
+    /* Signal Red - The Trust Accent */
+    --color-signal: 225 29 48;
+    --color-signal-dim: 225 29 48 / 0.15;
+    --color-signal-glow: 225 29 48 / 0.4;
+    --color-signal-strong: 190 24 40;
 
     /* Semantic Risk Colors */
     --color-risk-critical: 239 68 68;
@@ -39,34 +35,34 @@
     --color-verdict: 34 197 94;
 
     /* ---- Semantic Color Aliases (HSL for Tailwind compat) ---- */
-    --background: 220 39% 6%;
-    --foreground: 210 40% 96%;
+    --background: 0 0% 7%;
+    --foreground: 0 0% 96%;
 
-    --card: 220 27% 9%;
-    --card-foreground: 210 40% 96%;
-    --card-border: 220 20% 16%;
+    --card: 0 0% 10%;
+    --card-foreground: 0 0% 96%;
+    --card-border: 0 0% 17%;
 
-    --popover: 220 27% 9%;
-    --popover-foreground: 210 40% 96%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 96%;
 
-    --primary: 170 100% 42%;
-    --primary-foreground: 220 39% 6%;
-    --primary-hover: 170 100% 35%;
+    --primary: 354 79% 50%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 354 79% 42%;
 
-    --secondary: 220 20% 14%;
-    --secondary-foreground: 210 40% 90%;
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 92%;
 
-    --muted: 220 20% 14%;
-    --muted-foreground: 215 20% 55%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 62%;
 
-    --accent: 170 100% 42%;
-    --accent-foreground: 220 39% 6%;
+    --accent: 354 79% 50%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 210 40% 98%;
 
     --warning: 42 93% 56%;
-    --warning-foreground: 220 39% 6%;
+    --warning-foreground: 0 0% 7%;
 
     --success: 142 71% 45%;
     --success-foreground: 210 40% 98%;
@@ -76,9 +72,9 @@
     --risk-medium: 43 96% 56%;
     --risk-low: 142 71% 45%;
 
-    --border: 220 20% 18%;
-    --input: 220 20% 18%;
-    --ring: 170 100% 42%;
+    --border: 0 0% 19%;
+    --input: 0 0% 19%;
+    --ring: 354 79% 50%;
 
     --radius: 0.75rem;
     --radius-sm: 0.5rem;
@@ -86,11 +82,11 @@
     --radius-xl: 1.5rem;
 
     /* ---- Gradients ---- */
-    --gradient-primary: linear-gradient(135deg, hsl(170 100% 42%) 0%, hsl(170 100% 35%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(170 100% 42%) 0%, hsl(190 95% 45%) 100%);
-    --gradient-cyan-glow: radial-gradient(ellipse at center, hsl(170 100% 42% / 0.25) 0%, transparent 70%);
-    --gradient-card: linear-gradient(145deg, hsl(220 27% 9%) 0%, hsl(220 27% 7%) 100%);
-    --gradient-hero: linear-gradient(180deg, hsl(220 39% 6%) 0%, hsl(220 39% 4%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(354 79% 50%) 0%, hsl(354 79% 40%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(354 79% 50%) 0%, hsl(20 90% 48%) 100%);
+    --gradient-signal-glow: radial-gradient(ellipse at center, hsl(354 79% 50% / 0.25) 0%, transparent 70%);
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 10%) 0%, hsl(0 0% 8%) 100%);
+    --gradient-hero: linear-gradient(180deg, hsl(0 0% 7%) 0%, hsl(0 0% 5%) 100%);
     --gradient-risk-critical: linear-gradient(135deg, hsl(0 72% 51%) 0%, hsl(0 84% 40%) 100%);
     --gradient-risk-high: linear-gradient(135deg, hsl(24 95% 53%) 0%, hsl(15 100% 45%) 100%);
     --gradient-risk-medium: linear-gradient(135deg, hsl(42 93% 56%) 0%, hsl(38 92% 50%) 100%);
@@ -102,8 +98,8 @@
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.3);
     --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.4);
-    --shadow-cyan: 0 0 20px hsl(170 100% 42% / 0.3), 0 0 40px hsl(170 100% 42% / 0.15);
-    --shadow-cyan-lg: 0 0 40px hsl(170 100% 42% / 0.4), 0 0 80px hsl(170 100% 42% / 0.2);
+    --shadow-signal: 0 0 20px hsl(354 79% 50% / 0.3), 0 0 40px hsl(354 79% 50% / 0.15);
+    --shadow-signal-lg: 0 0 40px hsl(354 79% 50% / 0.4), 0 0 80px hsl(354 79% 50% / 0.2);
 
     /* ---- Animation Tokens ---- */
     --duration-fast: 150ms;
@@ -138,23 +134,23 @@
     --card-border: 214 32% 91%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
-    --primary: 170 100% 35%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 354 79% 45%;
+    --primary-foreground: 0 0% 100%;
     --secondary: 210 40% 96%;
     --secondary-foreground: 222 47% 11%;
     --muted: 210 40% 96%;
     --muted-foreground: 215 16% 47%;
-    --accent: 170 100% 35%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 354 79% 45%;
+    --accent-foreground: 0 0% 100%;
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 170 100% 35%;
+    --ring: 354 79% 45%;
     --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
     --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-    --shadow-cyan: 0 0 20px hsl(170 100% 35% / 0.25);
+    --shadow-signal: 0 0 20px hsl(354 79% 45% / 0.25);
     --gradient-hero: linear-gradient(180deg, hsl(210 40% 98%) 0%, hsl(210 40% 94%) 100%);
   }
 
@@ -250,7 +246,7 @@
   }
 
   /* Gradient text */
-  .text-gradient-cyan {
+  .text-gradient-signal {
     background: var(--gradient-primary);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -330,7 +326,7 @@
   .text-balance { text-wrap: balance; }
 
   /* Gradient borders */
-  .border-gradient-cyan {
+  .border-gradient-signal {
     border: 1px solid transparent;
     background: linear-gradient(var(--card), var(--card)) padding-box,
                 var(--gradient-primary) border-box;

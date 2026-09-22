@@ -17,7 +17,7 @@ const badgeVariants = cva(
         warning: "bg-warning/10 text-warning border border-warning/20",
         success: "bg-success/10 text-success border border-success/20",
         outline: "text-foreground border border-border bg-transparent",
-        cyan: "bg-[rgb(var(--color-cyan))]/10 text-[rgb(var(--color-cyan))] border border-[rgb(var(--color-cyan))]/20",
+        signal: "bg-primary/10 text-primary border border-primary/20",
       },
     },
     defaultVariants: {

@@ -15,7 +15,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground hover:bg-primary-hover hover:shadow-[var(--shadow-cyan)]",
+          "bg-primary text-primary-foreground hover:bg-primary-hover hover:shadow-[var(--shadow-signal)]",
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:shadow-[var(--shadow-sm)]",
         outline:
@@ -26,8 +26,8 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
         success:
           "bg-success text-success-foreground hover:bg-success/90 hover:shadow-[0_0_20px_rgba(34,197,94,0.3)]",
-        cyan:
-          "bg-[rgb(var(--color-cyan))] text-[rgb(var(--color-obsidian))] hover:bg-[rgb(var(--color-cyan-strong))] hover:shadow-[var(--shadow-cyan)]",
+        signal:
+          "bg-primary text-primary-foreground hover:bg-primary-hover hover:shadow-[var(--shadow-signal)]",
       },
       size: {
         default: "h-10 px-4 py-2",

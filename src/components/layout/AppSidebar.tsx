@@ -291,7 +291,7 @@ export function AppSidebar() {
                 <div
                   className="h-full flex"
                   style={{
-                    background: 'linear-gradient(90deg, hsl(var(--destructive)) 0%, hsl(var(--destructive)) 8%, hsl(var(--warning)) 8%, hsl(var(--warning)) 23%, hsl(var(--ring)) 23%, hsl(var(--ring)) 58%, hsl(var(--success)) 58%, hsl(var(--success)) 100%)'
+                    background: 'linear-gradient(90deg, hsl(var(--destructive)) 0%, hsl(var(--destructive)) 8%, hsl(var(--warning)) 8%, hsl(var(--warning)) 23%, hsl(var(--risk-medium)) 23%, hsl(var(--risk-medium)) 58%, hsl(var(--success)) 58%, hsl(var(--success)) 100%)'
                   }}
                 >
                   <div className="flex h-full" style={{ width: '8%' }}>
@@ -301,7 +301,7 @@ export function AppSidebar() {
                     <div className="w-full h-full bg-[hsl(var(--warning))]" />
                   </div>
                   <div className="flex h-full" style={{ width: '35%' }}>
-                    <div className="w-full h-full bg-[hsl(var(--ring))]" />
+                    <div className="w-full h-full bg-[hsl(var(--risk-medium))]" />
                   </div>
                   <div className="flex h-full" style={{ width: '42%' }}>
                     <div className="w-full h-full bg-[hsl(var(--success))]" />

@@ -79,6 +79,8 @@ export default {
       },
       backgroundImage: {
         'gradient-card': 'var(--gradient-card)',
+        'gradient-primary': 'var(--gradient-primary)',
+        'gradient-accent': 'var(--gradient-accent)',
       },
       spacing: {
         '4.5': '1.125rem',

@@ -48,10 +48,11 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
+      <div className="pointer-events-none absolute inset-0" style={{ background: 'var(--gradient-signal-glow)', opacity: 0.35 }} />
+      <Card className="w-full max-w-md relative">
         <CardHeader className="text-center">
-          <div className="mx-auto w-12 h-12 rounded-xl bg-primary flex items-center justify-center mb-2">
+          <div className="mx-auto w-12 h-12 rounded-xl bg-gradient-primary flex items-center justify-center mb-2 shadow-[var(--shadow-signal)]">
             <Shield className="w-6 h-6 text-primary-foreground" />
           </div>
           <CardTitle className="text-2xl">TrustGuard</CardTitle>
