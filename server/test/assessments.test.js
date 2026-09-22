@@ -37,7 +37,12 @@ function installMock(handlers = []) {
         return Promise.resolve({ rows: role ? [{ role }] : [] });
       }
       const handler = handlers.find((h) => h.match && h.match.test(sql));
-      if (handler) return Promise.resolve(handler.response);
+      if (handler) {
+        // `onCall` lets a test capture the params of a write it only cares about
+        // observing (the vendor rollup), without a second mock framework.
+        if (handler.onCall) handler.onCall(params);
+        return Promise.resolve(handler.response);
+      }
     }
     return Promise.resolve({ rows: [] });
   });
@@ -428,6 +433,35 @@ describe('Assessments Routes', () => {
       expect(response.status).toBe(200);
       expect(response.body.assessment.status).toBe('submitted');
     });
+
+    it('rolls the score up onto the vendor row after submitting', async () => {
+      const token = createToken('user-id', 'vendor');
+      let rollup = null;
+      installMock([
+        { role: 'vendor' },
+        { match: /SELECT v\.owner_user_id FROM assessments a/, response: { rows: [{ owner_user_id: 'user-id' }] } },
+        { match: /FROM questions ORDER BY display_order/, response: { rows: [] } },
+        { match: /SELECT question_id, answer FROM assessment_responses/, response: { rows: [] } },
+        {
+          match: /UPDATE assessments\s+SET status = 'submitted'/,
+          response: { rows: [{ id: 'a1', vendor_id: 'v1', status: 'submitted', risk_score: 80, risk_level: 'critical' }] },
+        },
+        {
+          match: /UPDATE vendors v/,
+          response: { rows: [] },
+          onCall: (params) => { rollup = params; },
+        },
+      ]);
+
+      const response = await request(app)
+        .post('/api/assessments/a1/submit')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(200);
+      // Without this the dashboard's risk distribution and the vendors table
+      // stay permanently empty — vendors.current_risk_score had no writer.
+      expect(rollup).toEqual(['v1']);
+    });
   });
 
   describe('POST /api/assessments/:id/review', () => {
@@ -503,6 +537,22 @@ describe('Assessments Routes', () => {
       expect(response.body.message).toBe('Assessment request revision successfully');
     });
 
+    it('should return 404 when the assessment does not exist', async () => {
+      const token = createToken('analyst-id', 'tprm_analyst');
+      installMock([
+        { role: 'tprm_analyst' },
+        { match: /UPDATE assessments\s+SET status = \$1/, response: { rows: [] } },
+      ]);
+
+      const response = await request(app)
+        .post('/api/assessments/00000000-0000-0000-0000-000000000000/review')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ action: 'approve' });
+
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe('Assessment not found');
+    });
+
     it('should return 400 for invalid action', async () => {
       const token = createToken('analyst-id', 'tprm_analyst');
       installMock([{ role: 'tprm_analyst' }]);
@@ -544,6 +594,31 @@ describe('Assessments Routes', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.reviews).toHaveLength(1);
+    });
+
+    it('hides internal notes from the vendor who owns the assessment', async () => {
+      // The read must carry the same is_internal boundary the remediation
+      // comments do, or a vendor sees the internal team's notes on its own
+      // assessment — the reviewer's comments are not written for the vendor.
+      const token = createToken('user-id', 'vendor');
+      let historyParams = null;
+      installMock([
+        { role: 'vendor' },
+        { match: /SELECT a\.\*, v\.owner_user_id FROM assessments a/, response: { rows: [{ id: 'a1', vendor_id: 'v1', owner_user_id: 'user-id' }] } },
+        {
+          match: /FROM assessment_review_history rh/,
+          response: { rows: [] },
+          onCall: (params) => { historyParams = params; },
+        },
+      ]);
+
+      const response = await request(app)
+        .get('/api/assessments/a1/reviews')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(200);
+      // The vendor is the owner but not TPRM staff, so the filter must be false.
+      expect(historyParams).toEqual(['a1', false]);
     });
   });
 

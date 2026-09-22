@@ -353,6 +353,25 @@ export const usersApi = {
 
 // Invitations API
 export const invitationsApi = {
+  /** Public lookup — used to decide what the invite page should show. */
+  async get(token: string): Promise<ApiResponse<{ assessment_id: string; vendor_name: string; email: string }>> {
+    const result = await request<{ assessment_id: string; vendor_name: string; email: string; valid: boolean }>(
+      `/api/invitations/${token}`
+    );
+    if (result.data?.valid) {
+      return { data: result.data };
+    }
+    return { error: result.error || 'Invalid or expired invitation' };
+  },
+
+  /** Bind the invitation's vendor to the signed-in account. */
+  async accept(token: string): Promise<ApiResponse<{ assessment_id: string }>> {
+    const result = await request<{ assessment_id: string }>(`/api/invitations/${token}/accept`, {
+      method: 'POST',
+    });
+    return result.error ? { error: result.error } : { data: result.data };
+  },
+
   async create(vendorId: string, assessmentId: string, email: string, sendEmailNotification = true): Promise<ApiResponse<{ token: string }>> {
     const result = await request<{ invitation: { token: string } }>('/api/invitations', {
       method: 'POST',

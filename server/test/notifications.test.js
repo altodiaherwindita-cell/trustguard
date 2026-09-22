@@ -301,5 +301,18 @@ describe('Notifications Routes', () => {
       expect(response.status).toBe(200);
       expect(response.body.template.subject).toBe('Updated Subject');
     });
+
+    it('should return 404 for non-existent template', async () => {
+      const token = createToken('admin-id', 'admin');
+      mockDb('admin', [['UPDATE notification_templates', { rows: [] }]]);
+
+      const response = await request(app)
+        .patch('/api/notifications/templates/nonexistent')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ subject: 'Updated Subject' });
+
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe('Notification template not found');
+    });
   });
 });

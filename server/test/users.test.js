@@ -411,6 +411,19 @@ describe('User Routes', () => {
       expect(response.body.message).toBe('User deactivated successfully');
     });
 
+    it('should return 404 for non-existent user', async () => {
+      const token = createToken('admin-id', 'admin');
+      mockDb({ queries: [[/^UPDATE users SET is_active/, []]] });
+
+      const response = await request(app)
+        .patch('/api/users/nonexistent/status')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ isActive: false });
+
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe('User not found');
+    });
+
     it('should activate user for admin', async () => {
       const token = createToken('admin-id', 'admin');
       mockDb({ queries: [[/^UPDATE users SET is_active/, [{ id: '1', is_active: true }]]] });
