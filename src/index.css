@@ -75,6 +75,36 @@
   .animate-scale-in {
     animation: scaleIn 0.3s ease-out forwards;
   }
+
+  /* ---- Sign-in page ---- */
+
+  /* The seam between the identity panel and the form is woven from the four risk
+     band colors, in order, at low opacity. It is derived from the product's own
+     model rather than picked for looks: the same four bands the scale below it
+     renders, repeated as a vertical rule. Masked at both ends so it reads as a
+     seam and not a stripe. */
+  .auth-seam {
+    background: repeating-linear-gradient(
+      to bottom,
+      hsl(var(--risk-low) / 0.6) 0 6px,
+      transparent 6px 12px,
+      hsl(var(--risk-medium) / 0.6) 12px 18px,
+      transparent 18px 24px,
+      hsl(var(--risk-high) / 0.6) 24px 30px,
+      transparent 30px 36px,
+      hsl(var(--risk-critical) / 0.6) 36px 42px,
+      transparent 42px 48px
+    );
+    -webkit-mask-image: linear-gradient(to bottom, transparent, black 14%, black 86%, transparent);
+    mask-image: linear-gradient(to bottom, transparent, black 14%, black 86%, transparent);
+  }
+
+  /* Bands sweep in from the left on load, one after another, so the scale
+     assembles itself in risk order. Transform-only, so it composites. */
+  .auth-band {
+    transform-origin: left center;
+    animation: authBand 0.65s var(--ease-out) both;
+  }
 }
 
 @keyframes fadeIn {
@@ -90,4 +120,9 @@
 @keyframes scaleIn {
   from { opacity: 0; transform: scale(0.95); }
   to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes authBand {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
 }
