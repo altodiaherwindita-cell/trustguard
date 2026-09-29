@@ -48,12 +48,17 @@
     background-clip: text;
   }
 
+  /* background-image, not the `background` shorthand. The shorthand also resets
+     background-clip to border-box, which silently broke every CardTitle: those
+     pair this class with Tailwind's bg-clip-text + text-transparent, so the
+     gradient painted as a filled box over see-through text. Tailwind's own
+     .bg-gradient-primary emits background-image for exactly this reason. */
   .bg-gradient-primary {
-    background: var(--gradient-primary);
+    background-image: var(--gradient-primary);
   }
 
   .bg-gradient-accent {
-    background: var(--gradient-accent);
+    background-image: var(--gradient-accent);
   }
 
   .shadow-card {

@@ -332,7 +332,7 @@ handler instead.
 ## 🧪 Testing
 
 ```bash
-# Backend unit tests — Jest, real routers against a mocked pool (218 tests)
+# Backend unit tests — Jest, real routers against a mocked pool (220 tests)
 cd server && npm test
 
 # Frontend unit tests — Vitest

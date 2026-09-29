@@ -1,6 +1,6 @@
 import request from 'supertest';
 import { app, mockPool } from './app.js';
-import { getSetting, loadSettings, saveSettings } from '../services/settings.js';
+import { getSetting, loadSettings, saveSettings, ensureSettings } from '../services/settings.js';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = 'test-secret-key-for-testing-only';
@@ -222,5 +222,41 @@ describe('settings service', () => {
 
     const insert = mockPool.query.mock.calls.find(([sql]) => sql.includes('INTO app_settings'));
     expect(insert[1][0]).toEqual(['SMTP_HOST']);
+  });
+
+  // The cache refreshed only on boot and on this process's own writes, so a row
+  // changed any other way (psql, another instance, a restored dump) stayed
+  // invisible until a restart — the UI reported a saved password that was gone.
+  describe('ensureSettings', () => {
+    it('picks up a change made outside this process once the TTL expires', async () => {
+      mockDb('admin', [], { SMTP_HOST: 'before.com' });
+      await loadSettings();
+      expect(getSetting('SMTP_HOST')).toBe('before.com');
+
+      // Someone else edits the row.
+      mockDb('admin', [], { SMTP_HOST: 'after.com' });
+
+      await ensureSettings();
+      expect(getSetting('SMTP_HOST')).toBe('before.com'); // still cached
+
+      jest.spyOn(Date, 'now').mockReturnValue(Date.now() + 11_000);
+      await ensureSettings();
+      expect(getSetting('SMTP_HOST')).toBe('after.com'); // now refreshed
+
+      Date.now.mockRestore();
+    });
+
+    it('keeps the last good values when the refresh fails', async () => {
+      mockDb('admin', [], { SMTP_HOST: 'good.com' });
+      await loadSettings();
+
+      mockPool.query.mockRejectedValue(new Error('db down'));
+      jest.spyOn(Date, 'now').mockReturnValue(Date.now() + 11_000);
+
+      await expect(ensureSettings()).resolves.toBeDefined();
+      expect(getSetting('SMTP_HOST')).toBe('good.com');
+
+      Date.now.mockRestore();
+    });
   });
 });

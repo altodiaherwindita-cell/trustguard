@@ -17,10 +17,16 @@ import { toast } from 'sonner';
 
 // A settings form field. Every control on this page is label + input + optional
 // hint, so the wrapper earns its keep after the second one.
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+//
+// htmlFor is required: a bare <Label> is not associated with anything, so a
+// screen reader announces the placeholder instead of the field name. The caller
+// passes the same id to its control.
+function Field({ label, hint, htmlFor, children }: {
+  label: string; hint?: string; htmlFor: string; children: React.ReactNode;
+}) {
   return (
     <div className="space-y-1.5">
-      <Label>{label}</Label>
+      <Label htmlFor={htmlFor}>{label}</Label>
       {children}
       {hint && <p className="text-xs leading-relaxed text-muted-foreground/70">{hint}</p>}
     </div>
@@ -66,6 +72,9 @@ const AI_KEYS: Array<keyof AppSettings> = [...AI_FIELDS.map((f) => f.key), 'AI_P
 function pick(settings: AppSettings, keys: Array<keyof AppSettings>) {
   return Object.fromEntries(keys.map((k) => [k, settings[k]]));
 }
+
+/** DOM id for a setting's control, so <Label htmlFor> can point at it. */
+const fieldId = (key: keyof AppSettings) => `setting-${key.toLowerCase()}`;
 
 export function SettingsPage() {
   const { isAdmin, user } = useAuth();
@@ -239,8 +248,9 @@ export function SettingsPage() {
             <CardContent className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 {EMAIL_FIELDS.map(({ key, label, placeholder }) => (
-                  <Field key={key} label={label}>
+                  <Field key={key} label={label} htmlFor={fieldId(key)}>
                     <Input
+                      id={fieldId(key)}
                       value={settings[key]}
                       placeholder={placeholder}
                       onChange={(e) => set(key, e.target.value)}
@@ -249,9 +259,11 @@ export function SettingsPage() {
                 ))}
                 <Field
                   label="Password"
+                  htmlFor="setting-smtp-password"
                   hint={secretsSet.SMTP_PASSWORD ? 'A password is saved. Leave blank to keep it.' : undefined}
                 >
                   <Input
+                    id="setting-smtp-password"
                     type="password"
                     autoComplete="new-password"
                     value={smtpPassword}
@@ -261,7 +273,8 @@ export function SettingsPage() {
                 </Field>
               </div>
 
-              <div className="flex flex-wrap gap-6">
+              <fieldset className="flex flex-wrap gap-6">
+                <legend className="sr-only">TLS options</legend>
                 <div className="flex items-center gap-3">
                   <Switch
                     id="smtp-secure"
@@ -278,7 +291,7 @@ export function SettingsPage() {
                   />
                   <Label htmlFor="smtp-reject" className="cursor-pointer">Verify TLS certificate</Label>
                 </div>
-              </div>
+              </fieldset>
 
               <div className="flex items-center gap-3 pt-2">
                 <Button onClick={saveEmail} disabled={busy !== null}>
@@ -311,9 +324,9 @@ export function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Provider">
+                <Field label="Provider" htmlFor="setting-ai-provider">
                   <Select value={settings.AI_PROVIDER || 'openai'} onValueChange={(v) => set('AI_PROVIDER', v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger id="setting-ai-provider"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="openai">OpenAI</SelectItem>
                       <SelectItem value="anthropic">Anthropic</SelectItem>
@@ -322,8 +335,9 @@ export function SettingsPage() {
                   </Select>
                 </Field>
                 {AI_FIELDS.map(({ key, label, placeholder }) => (
-                  <Field key={key} label={label}>
+                  <Field key={key} label={label} htmlFor={fieldId(key)}>
                     <Input
+                      id={fieldId(key)}
                       value={settings[key]}
                       placeholder={placeholder}
                       onChange={(e) => set(key, e.target.value)}
@@ -332,9 +346,11 @@ export function SettingsPage() {
                 ))}
                 <Field
                   label="API key"
+                  htmlFor="setting-ai-api-key"
                   hint={secretsSet.AI_API_KEY ? 'A key is saved. Leave blank to keep it.' : undefined}
                 >
                   <Input
+                    id="setting-ai-api-key"
                     type="password"
                     autoComplete="new-password"
                     value={aiApiKey}

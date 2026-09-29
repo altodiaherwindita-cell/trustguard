@@ -27,6 +27,16 @@ export const SECRET_KEYS = ['SMTP_PASSWORD', 'AI_API_KEY'];
 // null until loadSettings() runs. Callers before that get the env fallback,
 // which is also what keeps this module importable from tests with no database.
 let cache = null;
+let cacheAge = 0;
+
+// The cache used to refresh only on boot and on this process's own writes, so a
+// row changed any other way — psql, a second API instance, a restored dump —
+// stayed invisible until a restart, and the UI reported a saved password that
+// was no longer there. A TTL bounds that. This is a handful of rows on config
+// paths, not a hot loop; 10s is far below the time it takes to notice.
+// ponytail: per-process TTL, so two instances can disagree for up to 10s. Drop
+// the cache or move it to Postgres LISTEN/NOTIFY if that ever matters.
+const TTL_MS = 10_000;
 
 export function getSetting(key) {
   const stored = cache?.[key];
@@ -41,7 +51,20 @@ export function isSecretSet(key) {
 export async function loadSettings() {
   const { rows } = await pool.query('SELECT key, value FROM app_settings');
   cache = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+  cacheAge = Date.now();
   return cache;
+}
+
+/** Refresh if the cache is missing or older than the TTL. Never throws — a DB
+ *  blip should fall back to the last good values, not 500 the settings page. */
+export async function ensureSettings() {
+  if (cache !== null && Date.now() - cacheAge < TTL_MS) return cache;
+  try {
+    return await loadSettings();
+  } catch (error) {
+    console.error('Failed to refresh settings, using last known values:', error.message);
+    return cache ?? {};
+  }
 }
 
 /**

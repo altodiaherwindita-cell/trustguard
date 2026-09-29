@@ -8,6 +8,7 @@ import {
   getSetting,
   isSecretSet,
   saveSettings,
+  ensureSettings,
 } from '../services/settings.js';
 
 const router = Router();
@@ -48,7 +49,8 @@ function configStatus() {
   };
 }
 
-router.get('/', authenticateToken, requireRole('admin'), (req, res) => {
+router.get('/', authenticateToken, requireRole('admin'), async (req, res) => {
+  await ensureSettings();
   res.json({ ...currentSettings(), status: configStatus() });
 });
 
@@ -98,6 +100,11 @@ router.post('/test-email', authenticateToken, requireRole('admin'), async (req, 
   const to = req.user?.email;
   if (!to) return res.status(400).json({ error: 'No email address on your account' });
 
+  // A "test connection" button has to test the config as it stands now, not the
+  // transporter built at boot from whatever the settings were then.
+  await ensureSettings();
+  initializeEmailTransporter();
+
   const result = await sendEmail({
     to,
     subject: 'TrustGuard SMTP test',
@@ -114,6 +121,7 @@ router.post('/test-email', authenticateToken, requireRole('admin'), async (req, 
 // when unconfigured mirrors POST /api/ai/chat, so the two agree on what
 // "not configured" means.
 router.post('/test-ai', authenticateToken, requireRole('admin'), async (req, res) => {
+  await ensureSettings();
   const result = await chat('Reply with the single word: ok', [{ role: 'user', content: 'ping' }]);
   if (result.error) return res.status(result.status).json({ error: result.error });
   res.json({ message: `Connected to ${result.provider}${result.model ? ` (${result.model})` : ''}` });
