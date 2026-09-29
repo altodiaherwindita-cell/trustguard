@@ -15,27 +15,20 @@ interface StatCardProps {
   className?: string;
 }
 
-const accentLine: Record<string, string> = {
-  primary: 'bg-gradient-to-r from-transparent via-primary/60 to-transparent',
-  critical: 'bg-gradient-to-r from-transparent via-destructive/60 to-transparent',
-  warning: 'bg-gradient-to-r from-transparent via-warning/60 to-transparent',
-  success: 'bg-gradient-to-r from-transparent via-success/60 to-transparent',
-};
-
 const variantStyles = {
   default: 'bg-card border-border',
-  primary: 'bg-gradient-to-br from-primary/5 via-primary/2 to-primary/5 border-primary/20',
-  critical: 'bg-gradient-to-br from-destructive/5 via-destructive/2 to-destructive/5 border-destructive/20',
-  warning: 'bg-gradient-to-br from-warning/5 via-warning/2 to-warning/5 border-warning/20',
-  success: 'bg-gradient-to-br from-success/5 via-success/2 to-success/5 border-success/20',
+  primary: 'bg-card border-primary/20',
+  critical: 'bg-card border-destructive/20',
+  warning: 'bg-card border-warning/20',
+  success: 'bg-card border-success/20',
 };
 
 const iconStyles = {
   default: 'bg-muted/50 text-muted-foreground',
-  primary: 'bg-gradient-to-br from-primary/20 to-primary/10 text-primary',
-  critical: 'bg-gradient-to-br from-destructive/20 to-destructive/10 text-destructive',
-  warning: 'bg-gradient-to-br from-warning/20 to-warning/10 text-warning',
-  success: 'bg-gradient-to-br from-success/20 to-success/10 text-success',
+  primary: 'bg-primary/10 text-primary',
+  critical: 'bg-destructive/10 text-destructive',
+  warning: 'bg-warning/10 text-warning',
+  success: 'bg-success/10 text-success',
 };
 
 const titleStyles = {
@@ -48,10 +41,10 @@ const titleStyles = {
 
 const valueStyles = {
   default: 'text-foreground',
-  primary: 'bg-gradient-to-r from-primary via-primary/80 to-primary bg-clip-text text-transparent',
-  critical: 'bg-gradient-to-r from-destructive via-destructive/80 to-destructive bg-clip-text text-transparent',
-  warning: 'bg-gradient-to-r from-warning via-warning/80 to-warning bg-clip-text text-transparent',
-  success: 'bg-gradient-to-r from-success via-success/80 to-success bg-clip-text text-transparent',
+  primary: 'text-primary',
+  critical: 'text-destructive',
+  warning: 'text-warning',
+  success: 'text-success',
 };
 
 export function StatCard({
@@ -65,29 +58,20 @@ export function StatCard({
 }: StatCardProps) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: Math.random() * 0.1 }}
+      transition={{ duration: 0.25 }}
       className={cn(
-        'relative overflow-hidden rounded-2xl border p-6 shadow-card transition-all duration-300 hover:shadow-card-hover hover:-translate-y-0.5',
+        'relative overflow-hidden rounded-2xl border p-6 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5',
         variantStyles[variant],
         className
       )}
     >
-      {/* Decorative accent line */}
-      <div
-        className={cn(
-          'absolute top-0 left-0 right-0 h-px opacity-0 hover:opacity-100 transition-opacity duration-300',
-          variant === 'default' && 'bg-gradient-to-r from-transparent via-muted-foreground/40 to-transparent',
-          variant !== 'default' && accentLine[variant]
-        )}
-      />
-
       <div className="flex items-start justify-between relative z-10">
         <div className="space-y-2 pr-4">
           <p className={cn('text-sm font-medium', titleStyles[variant])}>{title}</p>
           <div className="flex items-baseline gap-2">
-            <p className={cn('text-3xl font-bold tracking-tight', valueStyles[variant])}>{value}</p>
+            <p className={cn('tabular-nums text-3xl font-bold tracking-tight', valueStyles[variant])}>{value}</p>
             {trend && (
               <span
                 className={cn(
