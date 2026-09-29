@@ -972,3 +972,51 @@ export const notificationsApi = {
     });
   },
 };
+
+// Settings API (admin only). SMTP_* / AI_* config that used to be env-only.
+// Secrets are write-only: the server reports `secretsSet` booleans, never the
+// stored values, so the form shows a "saved" placeholder instead of the key.
+export interface AppSettings {
+  SMTP_HOST: string;
+  SMTP_PORT: string;
+  SMTP_USER: string;
+  SMTP_SECURE: string;
+  SMTP_FROM: string;
+  SMTP_REJECT_UNAUTHORIZED: string;
+  AI_PROVIDER: string;
+  AI_MODEL: string;
+  AI_BASE_URL: string;
+}
+
+export interface SettingsStatus {
+  email: { configured: boolean; missing: string[] };
+  ai: { configured: boolean; provider: string; model: string };
+}
+
+export interface SettingsResponse {
+  settings: AppSettings;
+  secretsSet: { SMTP_PASSWORD: boolean; AI_API_KEY: boolean };
+  status: SettingsStatus;
+}
+
+export const settingsApi = {
+  async get(): Promise<ApiResponse<SettingsResponse>> {
+    return request<SettingsResponse>('/api/settings');
+  },
+
+  /** Send only the fields you want to change; omit the rest. '' clears an override. */
+  async update(updates: Partial<AppSettings> & { SMTP_PASSWORD?: string; AI_API_KEY?: string }): Promise<ApiResponse<SettingsResponse>> {
+    return request<SettingsResponse>('/api/settings', {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    });
+  },
+
+  async testEmail(): Promise<ApiResponse<{ message: string }>> {
+    return request('/api/settings/test-email', { method: 'POST' }, 20_000);
+  },
+
+  async testAi(): Promise<ApiResponse<{ message: string }>> {
+    return request('/api/settings/test-ai', { method: 'POST' }, 30_000);
+  },
+};

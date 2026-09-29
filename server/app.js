@@ -14,6 +14,7 @@ import remediationRoutes from './routes/remediation.js';
 import notificationRoutes from './routes/notifications.js';
 import reportRoutes from './routes/reports.js';
 import aiRoutes from './routes/ai.js';
+import settingsRoutes from './routes/settings.js';
 
 export function createApp({ dbReady = () => true } = {}) {
   const app = express();
@@ -67,6 +68,7 @@ export function createApp({ dbReady = () => true } = {}) {
   app.use('/api/notifications', notificationRoutes);
   app.use('/api/reports', reportRoutes);
   app.use('/api/ai', aiRoutes);
+  app.use('/api/settings', settingsRoutes);
 
   // Health check endpoint with API info
   app.get('/health', (req, res) => {

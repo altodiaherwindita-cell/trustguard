@@ -9,9 +9,13 @@ A comprehensive TPRM platform for managing vendor security assessments with AI-p
 - **Deterministic Risk Scoring**: Answers are weighted and scored 0–100 on the
   server, banded low / medium / high / critical. No model in the loop — the same
   answers always produce the same score.
-- **AI Assistant**: Optional BYOK chat over assessment context. Off until
-  `AI_PROVIDER` / `AI_API_KEY` / `AI_MODEL` are set; the endpoint returns 503
-  otherwise, and the UI says so rather than failing silently.
+- **AI Assistant**: Optional BYOK chat over assessment context. Off until a
+  provider and key are set; the endpoint returns 503 otherwise, and the UI says
+  so rather than failing silently.
+- **Configurable SMTP & AI**: Admins set email delivery and AI provider from
+  Settings, no redeploy. Stored values take precedence over `SMTP_*` / `AI_*`
+  environment variables, which remain the fallback. Both cards have a live
+  connection test.
 - **Role-Based Access Control**: Admin, TPRM Analyst, and Vendor roles
 - **Dashboard & Reporting**: Risk metrics, plus PDF / Excel export
 - **Audit Trail**: Evidence and remediation actions are recorded with actor and
@@ -309,8 +313,16 @@ handler instead.
 - `GET /vendors/summary/excel` - Vendor summary Excel (admin, tprm_analyst)
 
 ### AI — `/api/ai`
-- `POST /chat` - Chat completion (admin, tprm_analyst). Returns 503 until
-  `AI_PROVIDER`, `AI_API_KEY`, and `AI_MODEL` are configured.
+- `POST /chat` - Chat completion (admin, tprm_analyst). Returns 503 until a
+  provider and API key are configured (Settings UI or environment).
+
+### Settings — `/api/settings` (admin)
+- `GET /` - Current SMTP / AI config. Stored secrets are never returned; the
+  response carries `secretsSet` booleans instead.
+- `PATCH /` - Update any subset of `SMTP_*` / `AI_*`. Send `""` to clear an
+  override and fall back to the environment. Unknown keys are ignored.
+- `POST /test-email` - Sends a message to the caller's own address.
+- `POST /test-ai` - One request to the configured provider.
 
 ### Health
 - `GET /health` - Liveness. Returns **200** with `database: "disconnected"` when
@@ -320,7 +332,7 @@ handler instead.
 ## 🧪 Testing
 
 ```bash
-# Backend unit tests — Jest, real routers against a mocked pool (206 tests)
+# Backend unit tests — Jest, real routers against a mocked pool (218 tests)
 cd server && npm test
 
 # Frontend unit tests — Vitest
@@ -371,10 +383,16 @@ See `.env.example` for all available options:
 `docker compose up` refuses to start until `DB_PASSWORD` and `JWT_SECRET` are
 set — there are no working defaults.
 
-`DATABASE_URL` overrides the `DB_*` values if set. `AI_PROVIDER`,
-`AI_API_KEY`, and `AI_MODEL` are optional and enable `POST /api/ai/chat`.
-`VITE_API_URL` is a build-time variable — it is compiled into the frontend
-bundle, so changing it requires rebuilding the `web` image.
+`DATABASE_URL` overrides the `DB_*` values if set. `VITE_API_URL` is a
+build-time variable — it is compiled into the frontend bundle, so changing it
+requires rebuilding the `web` image.
+
+`SMTP_*` and `AI_*` are optional. They are the **fallback** for anything not set
+in Settings: the admin UI writes to an `app_settings` table, and a key with no
+row there (or a blank one) reads the environment instead. So an existing
+`.env`-only deployment keeps working, and clearing a field in the UI restores
+the environment value rather than blanking the config. Both sets are passed into
+the api container by compose, so `.env` works for them too.
 
 ## 🚨 Production Deployment
 

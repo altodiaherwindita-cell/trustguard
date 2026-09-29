@@ -1,21 +1,23 @@
 import nodemailer from 'nodemailer';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import { getSetting } from './settings.js';
 
 // Email transporter configuration
 let transporter = null;
 
 /**
- * Initialize email transporter with SMTP settings
+ * Initialize email transporter with SMTP settings.
+ *
+ * Reads through services/settings.js, so values saved in Settings take effect
+ * here and process.env remains the fallback. Must be re-run after SMTP settings
+ * change — see the PATCH handler in routes/settings.js.
  */
 export function initializeEmailTransporter() {
-  const smtpHost = process.env.SMTP_HOST;
-  const smtpPort = parseInt(process.env.SMTP_PORT || '587');
-  const smtpUser = process.env.SMTP_USER;
-  const smtpPassword = process.env.SMTP_PASSWORD;
-  const smtpSecure = process.env.SMTP_SECURE === 'true';
-  
+  const smtpHost = getSetting('SMTP_HOST');
+  const smtpPort = parseInt(getSetting('SMTP_PORT') || '587');
+  const smtpUser = getSetting('SMTP_USER');
+  const smtpPassword = getSetting('SMTP_PASSWORD');
+  const smtpSecure = getSetting('SMTP_SECURE') === 'true';
+
   if (!smtpHost || !smtpUser || !smtpPassword) {
     console.warn('Email not configured: SMTP_HOST, SMTP_USER, or SMTP_PASSWORD missing. Email notifications will be logged but not sent.');
     return null;
@@ -31,7 +33,7 @@ export function initializeEmailTransporter() {
         pass: smtpPassword,
       },
       tls: {
-        rejectUnauthorized: process.env.SMTP_REJECT_UNAUTHORIZED !== 'false',
+        rejectUnauthorized: getSetting('SMTP_REJECT_UNAUTHORIZED') !== 'false',
       },
     });
 
@@ -71,7 +73,7 @@ export async function sendEmail({ to, subject, html, text, from }) {
     };
   }
 
-  const defaultFrom = process.env.SMTP_FROM || 'TrustGuard Platform <noreply@trustguard.ai>';
+  const defaultFrom = getSetting('SMTP_FROM') || 'TrustGuard Platform <noreply@trustguard.ai>';
 
   try {
     const info = await transporter.sendMail({

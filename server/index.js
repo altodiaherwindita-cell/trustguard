@@ -2,6 +2,8 @@
 import { pool } from './db.js';
 import { createApp } from './app.js';
 import { initializeScheduler } from './services/scheduler.js';
+import { loadSettings } from './services/settings.js';
+import { initializeEmailTransporter } from './services/emailService.js';
 
 const PORT = process.env.PORT || 3000;
 
@@ -33,10 +35,18 @@ async function connectWithRetry(maxRetries = 5, delayMs = 2000) {
 const app = createApp({ dbReady: () => dbReady });
 
 // Initialize email reminder scheduler after DB connection
-connectWithRetry().then(() => {
-  if (dbReady) {
-    initializeScheduler();
+connectWithRetry().then(async () => {
+  if (!dbReady) return;
+  // Settings first: the transporter is built at module load, before the DB was
+  // reachable, so it saw only environment values. Rebuild it now that any
+  // stored SMTP config can be read, then start the scheduler that uses it.
+  try {
+    await loadSettings();
+    initializeEmailTransporter();
+  } catch (error) {
+    console.error('Failed to load saved settings, using environment values:', error.message);
   }
+  initializeScheduler();
 });
 
 // Start server

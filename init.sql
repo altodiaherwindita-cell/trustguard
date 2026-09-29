@@ -545,3 +545,16 @@ $$ LANGUAGE plpgsql;
 INSERT INTO user_notification_settings (user_id)
 SELECT id FROM users
 ON CONFLICT (user_id) DO NOTHING;
+
+-- ============================================
+-- APP SETTINGS
+-- ============================================
+
+-- Admin-editable SMTP / AI configuration, so those can change without a
+-- redeploy. Any key with no row here falls back to the matching environment
+-- variable — see server/services/settings.js.
+CREATE TABLE IF NOT EXISTS app_settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL DEFAULT '',
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
