@@ -11,7 +11,7 @@ import { Progress } from '@/components/ui/progress';
 import { Building2, ClipboardList, AlertTriangle, CheckCircle2, TrendingUp, ArrowRight, Loader2, FileText } from 'lucide-react';
 
 export function Dashboard() {
-  const { isTPRM, user } = useAuth();
+  const { isTPRM, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState({ total: 0, pending: 0, highRisk: 0, completed: 0, avg: 0 });
   const [dist, setDist] = useState({ low: 0, medium: 0, high: 0, critical: 0 });
@@ -21,55 +21,63 @@ export function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (authLoading) return; // Wait for auth to finish loading first
+    
     (async () => {
-      if (isTPRM) {
-        const [vendorsResult, assessmentsResult] = await Promise.all([
-          vendorsApi.getAll(),
-          assessmentsApi.getAll(),
-        ]);
-        const vs = vendorsResult.data || [];
-        const as = assessmentsResult.data || [];
-        const scored = vs.filter(v => v.current_risk_score != null);
-        const avg = scored.length ? Math.round(scored.reduce((s, v) => s + (v.current_risk_score || 0), 0) / scored.length) : 0;
-        const counts = { low: 0, medium: 0, high: 0, critical: 0 };
-        for (const v of scored) {
-          const level = v.current_risk_level as keyof typeof counts;
-          if (level) counts[level]++;
-        }
-        const total = scored.length || 1;
-        const monthAgo = new Date(); monthAgo.setMonth(monthAgo.getMonth() - 1);
-        setStats({
-          total: vs.length,
-          pending: as.filter(a => a.status !== 'reviewed' && a.status !== 'submitted').length + as.filter(a => a.status === 'submitted').length,
-          highRisk: vs.filter(v => v.current_risk_level === 'high' || v.current_risk_level === 'critical').length,
-          completed: as.filter(a => a.submitted_at && new Date(a.submitted_at) > monthAgo).length,
-          avg,
-        });
-        setDist({
-          low: Math.round((counts.low / total) * 100),
-          medium: Math.round((counts.medium / total) * 100),
-          high: Math.round((counts.high / total) * 100),
-          critical: Math.round((counts.critical / total) * 100),
-        });
-        setRecent(vs.slice(0, 5));
-        setPending(as.filter(a => a.status !== 'reviewed').slice(0, 6));
-      } else {
-        // Vendor: find their vendor + assessment
-        const vendorsResult = await vendorsApi.getAll();
-        const vs = vendorsResult.data || [];
-        const vendor = vs.find(v => true); // Filter by user when backend supports it
-        if (vendor) {
-          const assessmentsResult = await assessmentsApi.getAll();
+      try {
+        if (isTPRM) {
+          const [vendorsResult, assessmentsResult] = await Promise.all([
+            vendorsApi.getAll(),
+            assessmentsApi.getAll(),
+          ]);
+          const vs = vendorsResult.data || [];
           const as = assessmentsResult.data || [];
-          const vendorAssessments = as.filter(a => true); // Filter by vendor_id when backend supports it
-          setVendorAssessment({ vendor, assessment: vendorAssessments[0] || null });
+          const scored = vs.filter(v => v.current_risk_score != null);
+          const avg = scored.length ? Math.round(scored.reduce((s, v) => s + (v.current_risk_score || 0), 0) / scored.length) : 0;
+          const counts = { low: 0, medium: 0, high: 0, critical: 0 };
+          for (const v of scored) {
+            const level = v.current_risk_level as keyof typeof counts;
+            if (level) counts[level]++;
+          }
+          const total = scored.length || 1;
+          const monthAgo = new Date(); monthAgo.setMonth(monthAgo.getMonth() - 1);
+          setStats({
+            total: vs.length,
+            pending: as.filter(a => a.status !== 'reviewed' && a.status !== 'submitted').length + as.filter(a => a.status === 'submitted').length,
+            highRisk: vs.filter(v => v.current_risk_level === 'high' || v.current_risk_level === 'critical').length,
+            completed: as.filter(a => a.submitted_at && new Date(a.submitted_at) > monthAgo).length,
+            avg,
+          });
+          setDist({
+            low: Math.round((counts.low / total) * 100),
+            medium: Math.round((counts.medium / total) * 100),
+            high: Math.round((counts.high / total) * 100),
+            critical: Math.round((counts.critical / total) * 100),
+          });
+          setRecent(vs.slice(0, 5));
+          setPending(as.filter(a => a.status !== 'reviewed').slice(0, 6));
+        } else {
+          // Vendor: /api/vendors and /api/assessments are TPRM-only, so use the
+          // owner-scoped lists the server already exposes.
+          const vendorsResult = await vendorsApi.getMine();
+          const vs = vendorsResult.data || [];
+          const vendor = vs[0];
+          if (vendor) {
+            const assessmentsResult = await assessmentsApi.getMine();
+            const vendorAssessments = (assessmentsResult.data || [])
+              .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+            setVendorAssessment({ vendor, assessment: vendorAssessments[0] || null });
+          }
         }
+      } catch (err) {
+        console.error('Dashboard data load error:', err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     })();
-  }, [isTPRM, user]);
+  }, [isTPRM, user, authLoading]);
 
-  if (loading) return <div className="p-8 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-muted-foreground" /></div>;
+  if (authLoading || loading) return <div className="p-8 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-muted-foreground" /></div>;
 
   if (!isTPRM) {
     return (
@@ -107,14 +115,16 @@ export function Dashboard() {
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground mt-1">Monitor and manage your third-party risk assessments</p>
         </div>
-        <Link to="/vendors">
-          <Button className="gap-2 bg-gradient-primary hover:opacity-90"><Building2 className="w-4 h-4" /> Add Vendor</Button>
-        </Link>
+        {isTPRM && (
+          <Link to="/vendors">
+            <Button className="gap-2 bg-gradient-primary hover:opacity-90"><Building2 className="w-4 h-4" /> Add Vendor</Button>
+          </Link>
+        )}
       </motion.div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <StatCard title="Total Vendors" value={stats.total} subtitle="Active third parties" icon={Building2} variant="primary" />
-        <StatCard title="Pending Assessments" value={stats.pending} subtitle="Awaiting review" icon={ClipboardList} variant="accent" />
+        <StatCard title="Pending Assessments" value={stats.pending} subtitle="Awaiting review" icon={ClipboardList} variant="primary" />
         <StatCard title="High Risk Vendors" value={stats.highRisk} subtitle="Require attention" icon={AlertTriangle} variant="warning" />
         <StatCard title="Completed (30d)" value={stats.completed} subtitle="Assessments submitted" icon={CheckCircle2} variant="success" />
       </div>

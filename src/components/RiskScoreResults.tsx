@@ -19,11 +19,12 @@ import {
 interface RiskScoreResultsProps {
   result: RiskScoreResult;
   vendorName?: string;
+  aiSummary?: string | null;
   onReset?: () => void;
   onViewDetails?: () => void;
 }
 
-export function RiskScoreResults({ result, vendorName, onReset, onViewDetails }: RiskScoreResultsProps) {
+export function RiskScoreResults({ result, vendorName, aiSummary, onReset, onViewDetails }: RiskScoreResultsProps) {
   const { riskScore, riskLevel, categoryScores, recommendations, strengths, weaknesses } = result;
 
   return (
@@ -175,6 +176,23 @@ export function RiskScoreResults({ result, vendorName, onReset, onViewDetails }:
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* AI Summary */}
+      {aiSummary && (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-primary">
+                <Shield className="w-5 h-5" />
+                AI Analysis
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{aiSummary}</p>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
 
       {/* Insights Grid */}
       <div className="grid gap-6 md:grid-cols-2">

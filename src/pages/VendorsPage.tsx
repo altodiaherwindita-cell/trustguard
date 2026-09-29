@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { vendorsApi, assessmentsApi, Vendor } from '@/lib/api';
+import { vendorsApi, assessmentsApi, invitationsApi, Vendor } from '@/lib/api';
 import { RiskBadge } from '@/components/ui/RiskBadge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -48,15 +48,27 @@ export function VendorsPage() {
   const sendInvitation = async (vendor: Vendor) => {
     setBusy(true);
     const assessmentResult = await assessmentsApi.create({ vendor_id: vendor.id, status: 'not-started' });
-    if (assessmentResult.error) { setBusy(false); return toast.error(assessmentResult.error); }
+    if (assessmentResult.error || !assessmentResult.data) {
+      setBusy(false);
+      return toast.error(assessmentResult.error || 'Failed to create assessment');
+    }
     const assessment = assessmentResult.data;
-    
-    // Generate invite token (in production, backend should handle this)
-    const token = crypto.randomUUID().replace(/-/g, '');
-    const link = `${window.location.origin}/invite/${token}`;
-    
+
+    // The backend mints and stores the token; a client-side token would never
+    // match a row in assessment_invitations.
+    const invitationResult = await invitationsApi.create(
+      vendor.id,
+      assessment.id,
+      vendor.contact_email || '',
+      false
+    );
     setBusy(false);
-    setInviteLink(link);
+
+    if (invitationResult.error || !invitationResult.data) {
+      return toast.error(invitationResult.error || 'Failed to create invitation');
+    }
+
+    setInviteLink(`${window.location.origin}/invite/${invitationResult.data.token}`);
     toast.success('Invitation created');
     load();
   };
@@ -145,10 +157,10 @@ export function VendorsPage() {
             <DialogDescription>Create a vendor record. You can send them a questionnaire afterwards.</DialogDescription>
           </DialogHeader>
           <form onSubmit={addVendor} className="space-y-4">
-            <div className="space-y-2"><Label>Name</Label><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-            <div className="space-y-2"><Label>Category</Label><Input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="e.g. Cloud Services" /></div>
-            <div className="space-y-2"><Label>Industry</Label><Input value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} /></div>
-            <div className="space-y-2"><Label>Contact Email</Label><Input type="email" required value={form.contact_email} onChange={(e) => setForm({ ...form, contact_email: e.target.value })} /></div>
+            <div className="space-y-2"><Label htmlFor="vendor-name">Name</Label><Input id="vendor-name" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+            <div className="space-y-2"><Label htmlFor="vendor-category">Category</Label><Input id="vendor-category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} placeholder="e.g. Cloud Services" /></div>
+            <div className="space-y-2"><Label htmlFor="vendor-industry">Industry</Label><Input id="vendor-industry" value={form.industry} onChange={(e) => setForm({ ...form, industry: e.target.value })} /></div>
+            <div className="space-y-2"><Label htmlFor="vendor-contact-email">Contact Email</Label><Input id="vendor-contact-email" type="email" required value={form.contact_email} onChange={(e) => setForm({ ...form, contact_email: e.target.value })} /></div>
             <DialogFooter>
               <Button type="submit" disabled={busy}>{busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Add Vendor</Button>
             </DialogFooter>

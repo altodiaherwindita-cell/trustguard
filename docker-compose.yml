@@ -8,8 +8,12 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${DB_USER:-trustguard}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme_in_production}
+      # `:?` not `:-`: compose refuses to start rather than silently booting
+      # every deployment on the same committed password.
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env (see .env.example)}
       POSTGRES_DB: ${DB_NAME:-trustguard}
+      # Optional. init.sql seeds the default admin from this; unset seeds none.
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
@@ -32,16 +36,40 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://${DB_USER:-trustguard}:${DB_PASSWORD:-changeme_in_production}@db:5432/${DB_NAME:-trustguard}
-      JWT_SECRET: ${JWT_SECRET:-change_this_in_production}
+      DATABASE_URL: postgresql://${DB_USER:-trustguard}:${DB_PASSWORD:?set DB_PASSWORD in .env}@db:5432/${DB_NAME:-trustguard}
+      # Required too: a committed default here means anyone can mint valid tokens
+      # for any deployment that did not override it.
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env (openssl rand -hex 32)}
       PORT: 3000
+      # Origin emailed invitation links point at. Must be the URL the recipient's
+      # browser can reach, not the web container's name; defaults to the web
+      # service's published port (WEB_PORT, 80).
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+      # Fallbacks only. These can also be set from Settings in the UI, which is
+      # stored in the database and takes precedence; a blank field there falls
+      # back to these. Passed through empty when unset so the app treats them as
+      # absent rather than as the literal string "${SMTP_HOST}".
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_SECURE: ${SMTP_SECURE:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_REJECT_UNAUTHORIZED: ${SMTP_REJECT_UNAUTHORIZED:-}
+      AI_PROVIDER: ${AI_PROVIDER:-}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-}
+      AI_BASE_URL: ${AI_BASE_URL:-}
     depends_on:
       db:
         condition: service_healthy
     ports:
       - "${API_PORT:-3000}:3000"
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/health"]
+      # 127.0.0.1, not localhost: nginx and node bind IPv4 only, and musl resolves
+      # localhost to ::1 first, so the probe hits a closed port and the container
+      # reports unhealthy while serving traffic fine.
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -55,17 +83,20 @@ services:
       dockerfile: Dockerfile
       target: production
       args:
-        VITE_API_URL: ${VITE_API_URL:-http://api:3000}
+        # Empty on purpose: the bundle calls the page's own origin and nginx
+        # proxies /api/ to the api container. This used to default to
+        # http://api:3000, a docker-internal hostname the *browser* cannot
+        # resolve, so every API call from the compose frontend failed.
+        VITE_API_URL: ${VITE_API_URL:-}
     container_name: trustguard-web
     restart: unless-stopped
-    environment:
-      VITE_API_URL: ${VITE_API_URL:-http://api:3000}
     depends_on:
       - api
     ports:
       - "${WEB_PORT:-80}:80"
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:80"]
+      # 127.0.0.1, not localhost — see the api healthcheck note above.
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:80"]
       interval: 30s
       timeout: 10s
       retries: 3
